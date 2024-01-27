@@ -8,14 +8,19 @@
 #define SCREEN_HEIGHT 32
 #define OLED_RESET    -1
 
+// Definiere die GPIO-Pins für das I2C-Display
+#define OLED_SDA 21 // GPIO21
+#define OLED_SCL 22 // GPIO22
+
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 class DisplayManager {
   public:
     void setup() {
-      if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
+      Wire.begin(OLED_SDA, OLED_SCL); // Initialisiere I2C mit SDA und SCL Pins
+      if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
         Serial.println(F("SSD1306 allocation failed"));
-        for(;;);
+        for (;;);
       }
       delay(2000);
       display.clearDisplay();
