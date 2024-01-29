@@ -16,7 +16,10 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 class DisplayManager {
   public:
-    void setup() {
+    void setup(int _maxValue, int _minValue) {
+      maxValue = _maxValue;
+      minValue = _minValue;
+
       Wire.begin(OLED_SDA, OLED_SCL); // Initialisiere I2C mit SDA und SCL Pins
       if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
         Serial.println(F("SSD1306 allocation failed"));
@@ -29,11 +32,15 @@ class DisplayManager {
     void displayValues(int value1, int value2) {
       display.clearDisplay();
       display.drawRect(10, 0, 20, SCREEN_HEIGHT, SSD1306_WHITE);
-      display.fillRect(10, SCREEN_HEIGHT - map(value1, 0, 100, 0, SCREEN_HEIGHT), 20, SCREEN_HEIGHT, SSD1306_WHITE);
+      display.fillRect(10, SCREEN_HEIGHT - map(value1, minValue, maxValue, 0, SCREEN_HEIGHT), 20, SCREEN_HEIGHT, SSD1306_WHITE);
       display.drawRect(60, 0, 20, SCREEN_HEIGHT, SSD1306_WHITE);
-      display.fillRect(60, SCREEN_HEIGHT - map(value2, 0, 100, 0, SCREEN_HEIGHT), 20, SCREEN_HEIGHT, SSD1306_WHITE);
+      display.fillRect(60, SCREEN_HEIGHT - map(value2, minValue, maxValue, 0, SCREEN_HEIGHT), 20, SCREEN_HEIGHT, SSD1306_WHITE);
       display.display();
     }
+
+  private:
+    int maxValue;
+    int minValue;
 };
 
 #endif
