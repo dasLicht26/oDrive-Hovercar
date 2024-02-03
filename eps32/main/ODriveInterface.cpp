@@ -9,12 +9,11 @@ void ODriveInterface::begin(int baudRate, int rxPin, int txPin) {
 String ODriveInterface::sendCommand(String command) {
     odrive_serial.println(command);
     long startMillis = millis();
-    while (!odrive_serial.available()) {
-        if (millis() - startMillis > 500) {
-            return "Timeout";
-        }
-        delay(10);
-    }
+    //while (!odrive_serial.available()) {
+    //    if (millis() - startMillis > 500) {
+    //        return "Timeout";
+    //    }
+    //}
     return odrive_serial.readStringUntil('\n');
 }
 
@@ -24,7 +23,7 @@ float ODriveInterface::readVelocity() {
 }
 
 void ODriveInterface::writeVelocity(float velocity) {
-    sendCommand("v axis0 " + String(velocity));
+    sendCommand("v 0 " + String(velocity));
 }
 
 float ODriveInterface::readBatteryVoltage() {
