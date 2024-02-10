@@ -38,6 +38,20 @@ class DisplayManager {
       display.display();
     }
 
+    void displayMessage(const String& message) {
+      display.clearDisplay(); // Lösche den aktuellen Inhalt des Displays
+      display.setTextSize(1.5); // Setze die Textgröße. Du kannst diesen Wert anpassen.
+      display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
+      display.setCursor(0, 0); // Setze den Cursor an den Anfang des Displays
+      display.println(message); // Drucke die Fehlermeldung
+      display.display(); // Zeige die Änderungen auf dem Display an
+    }
+
+    void displayMessage(float number) {
+      String message = String(number); // Konvertiere float zu String
+      displayMessage(message); // Rufe die ursprüngliche Funktion au
+    }
+
   private:
     int maxValue;
     int minValue;

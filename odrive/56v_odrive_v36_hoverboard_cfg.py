@@ -78,7 +78,7 @@ class HBMotorConfig:
         self._find_odrive()
 
         # Set this to True if using a brake resistor
-        self.odrv.config.enable_brake_resistor = True
+        self.odrv.config.enable_brake_resistor = False
 
         # This is the resistance of the brake resistor. You can leave this
         # at the default setting if you are not using a brake resistor. Note
@@ -135,7 +135,7 @@ class HBMotorConfig:
         # Make sure to tune the gains up when you have everything else working
         # to a stiffness that is applicable to your application.
         self.odrv_axis.encoder.config.bandwidth = 100
-        self.odrv_axis.controller.config.pos_gain = 6
+        self.odrv_axis.controller.config.pos_gain = 1
         self.odrv_axis.controller.config.vel_gain = (
             0.02
             * self.odrv_axis.motor.config.torque_constant
@@ -146,7 +146,7 @@ class HBMotorConfig:
             * self.odrv_axis.motor.config.torque_constant
             * self.odrv_axis.encoder.config.cpr
         )
-        self.odrv_axis.controller.config.vel_limit = 10
+        self.odrv_axis.controller.config.vel_limit = 600
 
         # Set in position control mode so we can control the position of the
         # wheel
@@ -166,6 +166,7 @@ class HBMotorConfig:
             else:
                 print("Calibration configuration saved.")
 
+
             print("Manual configuration saved.")
         except Exception as e:
             pass
@@ -177,7 +178,7 @@ class HBMotorConfig:
         print("Calibrating Odrive for hoverboard motor (you should hear a " "beep)...")
 
         self.odrv_axis.requested_state = AXIS_STATE_MOTOR_CALIBRATION
-
+        print("Calibrating Odrive for motor...")
         # Wait for calibration to take place
         time.sleep(10)
 
@@ -230,8 +231,21 @@ class HBMotorConfig:
 
         # If all looks good, then lets tell ODrive that saving this calibration
         # to persistent memory is OK
+        print("done")
         self.odrv_axis.motor.config.pre_calibrated = True
+        try:
+            print("Saving manual configuration and rebooting...")
+            is_saved = self.odrv.save_configuration()
+            if not is_saved:
+                print("Error: Configuration not saved. Are all motors in IDLE state?")
+            else:
+                print("Calibration configuration saved.")
 
+
+            print("Manual configuration saved.")
+        except Exception as e:
+            pass
+        print("Motor calibration finished. saved and reconnected")
         # Check the alignment between the motor and the hall sensor. Because of
         # this step you are allowed to plug the motor phases in random order and
         # also the hall signals can be random. Just don’t change it after
@@ -338,41 +352,45 @@ class HBMotorConfig:
 
         self.odrv_axis.controller.input_pos = angle / 360.0
 
+    def print_current_config(self):
+
+        print("Printing current configuration...")
+        print(f"Motor: {self.odrv_axis.motor}")
+        print(f"pole_pairs: {self.odrv_axis.motor.config.pole_pairs}")
+        print(f"resistance_calib_max_voltage: {self.odrv_axis.motor.config.resistance_calib_max_voltage}")
+        print(f"requested_current_range: {self.odrv_axis.motor.config.requested_current_range}")
+        print(f"current_control_bandwidth: {self.odrv_axis.motor.config.current_control_bandwidth}")
+
+        print(f"torque_constant: {self.odrv_axis.motor.config.torque_constant}")
+        print(f"encoder_mode: {self.odrv_axis.encoder.config.mode}")
+        print(f"cpr: {self.odrv_axis.encoder.config.cpr}")
+        print(f"calib_scan_distance: {self.odrv_axis.encoder.config.calib_scan_distance}")
+        print(f"bandwidth: {self.odrv_axis.encoder.config.bandwidth}")
+        print(f"pos_gain: {self.odrv_axis.controller.config.pos_gain}")
+        print(f"vel_gain: {self.odrv_axis.controller.config.vel_gain}")
+        print(f"vel_integrator_gain: {self.odrv_axis.controller.config.vel_integrator_gain}")
+        print(f"vel_limit: {self.odrv_axis.controller.config.vel_limit}")
+
+
+
+
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Hoverboard Motor Calibration")
 
-    # Argument for axis_num
-    parser.add_argument(
-        "--axis_num",
-        type=int,
-        choices=[0, 1],  # Only allow 0 or 1
-        required=True,
-        help="Motor axis number which can only be 0 or 1.",
-    )
 
-    # Argument for erase_config
-    parser.add_argument(
-        "--erase_config",
-        action="store_true",  # If present, set to True. If absent, set to False.
-        help="Flag to determine if the config should be erased.",
-    )
+    motor_nr = 1
 
-    # Argument to conduct motor test (make sure motor can move freely)
-    parser.add_argument(
-        "--motor_test",
-        action="store_true",  # If present, set to True. If absent, set to False.
-        help="Flag to determine if the config should be erased.",
-    )
+    motor_test = False
 
-    args = parser.parse_args()
+    hb_motor_config = HBMotorConfig(axis_num=motor_nr, erase_config=False)
 
-    hb_motor_config = HBMotorConfig(
-        axis_num=args.axis_num, erase_config=args.erase_config
-    )
+
+    hb_motor_config.print_current_config()
+    
     hb_motor_config.configure()
 
-    if args.motor_test:
+    if motor_test:
         print("Placing motor in close loop. If you move motor, motor will resist you.")
         hb_motor_config.mode_close_loop_control()
 
