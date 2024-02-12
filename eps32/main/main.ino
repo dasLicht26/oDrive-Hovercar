@@ -1,4 +1,3 @@
-#include "HallSensor.h"
 #include "DisplayManager.h"
 #include "SpeedControl.h"
 
@@ -18,11 +17,11 @@ const float HALL_ANALOG_MIN = 540; // Analog gelesene Spannung wenn Pedal nicht 
 
 // Angaben zur Geschwindigkeitsberechnung und überwachung
 const float RADIUSCM = 20.5; // Definiere Reifendurchmesser (Für Geschwindigkeitberechnung in Kmh) in cm
-const int MAX_KMH_MODE_R = 5; // Maximalgeschwindigkeit in KM/h beim Rückwertsfahren --> (Errechnet sich aus Reifendurchmesser RADIUSCM)
-const int MAX_KMH_MODE_1 = 5; // Maximalgeschwindigkeit in KM/h im Modus 1 --> (Errechnet sich aus Reifendurchmesser RADIUSCM)
-const int MAX_KMH_MODE_2 = 10; // Maximalgeschwindigkeit in KM/h im Modus 2 --> (Errechnet sich aus Reifendurchmesser RADIUSCM) 
+const int MAX_KMH_MODE_R = 3; // Maximalgeschwindigkeit in KM/h beim Rückwertsfahren --> (Errechnet sich aus Reifendurchmesser RADIUSCM)
+const int MAX_KMH_MODE_1 = 3; // Maximalgeschwindigkeit in KM/h im Modus 1 --> (Errechnet sich aus Reifendurchmesser RADIUSCM)
+const int MAX_KMH_MODE_2 = 9; // Maximalgeschwindigkeit in KM/h im Modus 2 --> (Errechnet sich aus Reifendurchmesser RADIUSCM) 
 const int MAX_KMH_MODE_3 = 18;// Maximalgeschwindigkeit in KM/h im Modus 3 --> (Errechnet sich aus Reifendurchmesser RADIUSCM)
-const int MAX_KMH_MODE_4 = 30; // Maximalgeschwindigkeit in KM/h im Modus 4 --> (Errechnet sich aus Reifendurchmesser RADIUSCM) 
+const int MAX_KMH_MODE_4 = 24; // Maximalgeschwindigkeit in KM/h im Modus 4 --> (Errechnet sich aus Reifendurchmesser RADIUSCM) 
 String speedMode; // Gesetzter Geschwindigkeitesmodus -> Wert wird beim Einschalten/Booten gesetzt (setSpeedMode())
 int maxKmh; // Gesetzte Maximalgeschwindigkeit in Km/h -> Wert wird beim Einschalten/Booten gesetzt (setSpeedMode())
 
@@ -37,10 +36,7 @@ const int ODRIVE_UART = 1; // verwendeter UART-Bus des ESP32 (UART1)
 const int ODRIVE_RX = 10; // verwendeter GPIO für RX UART-Bus des ESP32 (GPIO-10)
 const int ODRIVE_TX = 9; // verwendeter GPIO für TX UART-Bus des ESP32 (GPIO-9)
 
-// bugfixing
-int countLoop = 0;
 
-HallSensor sensor;  //initialisiere HALL-Sensoren (Gas/Bremse)
 DisplayManager displayManager; //initialisiere OLED-Display
 SpeedControler speedControler; //initialisiere Geschwinigkeitskontrolle
 HardwareSerial odrive_serial(ODRIVE_UART); // Verwender UART im ESP32
@@ -76,16 +72,22 @@ void setup() {
     Serial.begin(115200); // starte seriellen Monitor zu ESP32
     odrive_serial.begin(ODRIVE_BAUD_RATE, SERIAL_8N1, ODRIVE_RX, ODRIVE_TX); // starte serielle Verbindung zum odrive
     setSpeedMode(); // setze Geschwindigkeitsbegrenzungen 
+    speedControler.setup(HALL_ANALOG_MAX, HALL_ANALOG_MIN, HALL_BW_PIN, HALL_FW_PIN, maxKmh, MAX_KMH_MODE_R, RADIUSCM);
+    displayManager.setup();
 
-    sensor.setup(MAX_HALL_VALUE , MIN_HALL_VALUE); // HALL Sensoren (Pedale)
-    displayManager.setup(MAX_HALL_VALUE , MIN_HALL_VALUE); // Display
-    speedControler.setup(MAX_HALL_VALUE , MIN_HALL_VALUE, RADIUSCM); // Geschwindigkeit Outputkontrolle
-    
+    //displayManager.vBatLowError();
+    //displayManager.displayDashboard(16.56, 22.88, 81, speedMode);
 
-    displayManager.displayDashboard(16.56, 22.88, 81, speedMode);
+    displayManager.displayMessage("Boote...");
 
-    delay(10);
-
+    // Batterie check
+    while(odrive.getParameterAsFloat("vbus_voltage") == 0.0){
+      delay(30);
+    }
+    float vBat = odrive.getParameterAsFloat("vbus_voltage");
+    if(vBat <= V_BAT_MIN_START) {
+      displayManager.vBatLowError(); // Endlosschleife -> Batterie leer
+    }
   // Warte bis odrive hochgefahren ist und State nicht mehr "undefined" ist
     while (odrive.getState(0) == AXIS_STATE_UNDEFINED) {
       delay(30);
@@ -111,7 +113,7 @@ void setup() {
     }
 
     Serial.println("ODrive running!");
-  }
+  }   
 
 
 void loop() {
@@ -120,41 +122,39 @@ void loop() {
   Serial.flush();
 
   // setze odrive Watchdog-Timer zurück, wenn dieser nicht alle 0.8 Sekunden zurückgesetzt wird, gehen die Motoren in Notaus (Falls es ein Verbindungsabbruch gibt)
-  odrive.resetWatchdog(0); // Setze Watchdog Axis 0 zurück (odrive geht sonst nach 0.8sek in Notaus)
-  odrive.resetWatchdog(1); // Setze Watchdog Axis 0 zurück (odrive geht sonst nach 0.8sek in Notaus)
-
-  // sammle HALL Werte (Pedale)
-  int backwardValue = sensor.readValue(HALL_BW_PIN);
-  int forwardValue = sensor.readValue(HALL_FW_PIN);
+  odrive.resetWatchdog(0); // Setze Watchdog Axis 0 zurück 
+  odrive.resetWatchdog(1); // Setze Watchdog Axis 0 zurück 
 
   // lese Batteriespannung
-  float vBusVoltage =  odrive.getParameterAsFloat("vbus_voltage");
+  float vBat =  odrive.getParameterAsFloat("vbus_voltage");
+  int vBatPercent = map(vBat, V_BAT_MIN, V_BAT_MAX, 0, 100);
 
-  // lese odrive, aktuelle Umdrehungen pro Sekunde der Räder
+  // checke ob Batteriespannung i.O. ist
+    if(vBat <= V_BAT_MIN) {
+      odrive.setVelocity(0.0); // Bremse auf 0
+      displayManager.vBatLowError(); // Endlosschleife -> Batterie leer
+    return; // Breche den Loop ab
+  }
+
+
+  // lese aktuelle Geschwindigkeit der angeforderten und tatsächlichen KMH/RPS
   float odriveRPS0 =  odrive.getParameterAsFloat("axis0.encoder.vel_estimate");
   float odriveRPS1 =  odrive.getParameterAsFloat("axis0.encoder.vel_estimate");
+  float odriveRPS = (odriveRPS1 + odriveRPS0)/2; // Geschwindigkeitsmittel der zwei Räder
+  float odriveKMH = speedControler.convertRPStoKMh(odriveRPS);
+  float requestRPS = speedControler.getRequestedRPS();
+  float requestKMH = speedControler.convertRPStoKMh(requestRPS);
 
+  // lade Dashboard
+  if(requestRPS < -0.1 && odriveKMH < 1){
+    displayManager.displayDashboard(requestKMH, odriveKMH, vBatPercent, "R", MAX_KMH_MODE_R);
+  }
+  else{
+    displayManager.displayDashboard(requestKMH, odriveKMH, vBatPercent, speedMode, maxKmh);
+  }
 
-  int inputSpeedValueInt = speedControler.getSpeed(forwardValue, backwardValue, 0);
-  float inputSpeedValue = static_cast<float>(inputSpeedValueInt) * 0.001;
+  odrive.setVelocity(requestRPS);
+  //Serial.println(requestRPS);
+  }
 
-
-
-  float speedKMh = speedControler.speedKMh(odriveVel);
-
-
-  displayManager.displayMessage(speedKMh);
-  // Gesetzte Geschwindigkeit
-
-  //odrive.setVelocity(inputSpeedValue, 0);
-
-  
-  Serial.print("KM/H: ");
-  Serial.println(speedKMh);
-
-  Serial.print(" : ");
-  Serial.println(vBusVoltage);
-  
-  //delay(0);
-}
 

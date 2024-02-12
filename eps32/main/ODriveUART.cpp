@@ -114,8 +114,6 @@ String ODriveUART::readLine(unsigned long timeout_ms) {
     String str = "";
     unsigned long timeout_start = millis();
     delay(10);
-    Serial.print("Serial Eingangsbuffer:");
-    Serial.println(serial_.available());
 
     for (;;) {
         while (!serial_.available()) {
@@ -130,8 +128,6 @@ String ODriveUART::readLine(unsigned long timeout_ms) {
             break;
         str += c;
     }
-    int timer = millis() - timeout_start;
-    Serial.print("antoworttimer:");
-    Serial.println(timer);
+
     return str;
 }
