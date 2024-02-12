@@ -47,6 +47,48 @@ class DisplayManager {
       display.display(); // Zeige die Änderungen auf dem Display an
     }
 
+    void displaySpeedmode(int mode, bool displayValue){
+      display.clearDisplay(); // Lösche den aktuellen Inhalt des Displays
+      display.drawRoundRect (0, 0, 16, 20,3, SSD1306_WHITE);
+      display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
+      display.setCursor(3, 3); // Setze den Cursor an den Anfang des Displays
+      display.setTextSize(2); // Setze die Textgröße. Du kannst diesen Wert anpassen.
+      display.println(mode); // Drucke die Fehlermeldung
+      if(displayValue){
+        display.display(); // Zeige die Änderungen auf dem Display an
+      }
+
+    }
+
+    void displayKMh(float kmh, int mode){
+      displaySpeedmode(mode, false);
+      //kmh Text
+      display.setCursor(18, 3); // Setze den Cursor an den Anfang des Displays
+      display.setTextSize(1); // Setze die Textgröße. Du kannst diesen Wert anpassen.
+      display.print("Kmh"); // Drucke die Fehlermeldung
+      //kmh Value
+      display.setCursor(38, 3); // Setze den Cursor an den Anfang des Displays
+      display.setTextSize(4); // Setze die Textgröße. Du kannst diesen Wert anpassen.
+      int kmhInt = kmh + 0.5;
+      String displayKmhValue;
+      if (kmhInt < 10){
+        displayKmhValue = "0" + String(kmhInt);
+        }
+      else {
+        displayKmhValue = String(kmhInt);
+        }
+      display.print(displayKmhValue); // Drucke die Fehlermeldung
+
+      display.setTextSize(1); // Setze die Textgröße. Du kannst diesen Wert anpassen.
+      display.print("Bat "); // Drucke die Fehlermeldung
+
+      display.setTextSize(2); // Setze die Textgröße. Du kannst diesen Wert anpassen.
+      display.print("67%"); // Drucke die Fehlermeldung
+
+      display.display(); // Zeige die Änderungen auf dem Display an
+    }
+
+
     void displayMessage(float number) {
       String message = String(number); // Konvertiere float zu String
       displayMessage(message); // Rufe die ursprüngliche Funktion au

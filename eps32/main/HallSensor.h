@@ -1,6 +1,6 @@
 #ifndef HallSensor_h
 #define HallSensor_h
-
+#include <Arduino.h>
 
 class HallSensor {
   public:
