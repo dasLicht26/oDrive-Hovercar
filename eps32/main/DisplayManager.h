@@ -40,36 +40,30 @@ class DisplayManager {
 
     void displayMessage(const String& message) {
       display.clearDisplay(); // Lösche den aktuellen Inhalt des Displays
-      display.setTextSize(1.5); // Setze die Textgröße. Du kannst diesen Wert anpassen.
+      display.setTextSize(1.5); // Setze die Textgröße. 
       display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
       display.setCursor(0, 0); // Setze den Cursor an den Anfang des Displays
-      display.println(message); // Drucke die Fehlermeldung
+      display.println(message); 
       display.display(); // Zeige die Änderungen auf dem Display an
     }
 
-    void displaySpeedmode(int mode, bool displayValue){
-      display.clearDisplay(); // Lösche den aktuellen Inhalt des Displays
+    void displaySpeedmode(String mode){
       display.drawRoundRect (0, 0, 16, 20,3, SSD1306_WHITE);
       display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
       display.setCursor(3, 3); // Setze den Cursor an den Anfang des Displays
-      display.setTextSize(2); // Setze die Textgröße. Du kannst diesen Wert anpassen.
-      display.println(mode); // Drucke die Fehlermeldung
-      if(displayValue){
-        display.display(); // Zeige die Änderungen auf dem Display an
-      }
-
+      display.setTextSize(2); // Setze die Textgröße. 
+      display.println(mode); 
     }
 
-    void displayKMh(float kmh, int mode){
-      displaySpeedmode(mode, false);
+    void displaySpeed(float requestKmh, float currentKmh){
       //kmh Text
-      display.setCursor(18, 3); // Setze den Cursor an den Anfang des Displays
-      display.setTextSize(1); // Setze die Textgröße. Du kannst diesen Wert anpassen.
-      display.print("Kmh"); // Drucke die Fehlermeldung
+      display.setCursor(18, 0); // Setze den Cursor hinter 'mode'
+      display.setTextSize(1); 
+      display.print("Kmh"); 
       //kmh Value
-      display.setCursor(38, 3); // Setze den Cursor an den Anfang des Displays
-      display.setTextSize(4); // Setze die Textgröße. Du kannst diesen Wert anpassen.
-      int kmhInt = kmh + 0.5;
+      //display.setCursor(38, 3); // Setze den Cursor 
+      display.setTextSize(4); 
+      int kmhInt = currentKmh + 0.5;
       String displayKmhValue;
       if (kmhInt < 10){
         displayKmhValue = "0" + String(kmhInt);
@@ -77,14 +71,35 @@ class DisplayManager {
       else {
         displayKmhValue = String(kmhInt);
         }
-      display.print(displayKmhValue); // Drucke die Fehlermeldung
+      display.print(displayKmhValue); 
+    }
 
-      display.setTextSize(1); // Setze die Textgröße. Du kannst diesen Wert anpassen.
-      display.print("Bat "); // Drucke die Fehlermeldung
+    void displayBat(int batPercent){
+      display.fillRect(115, 0, 6, 2, SSD1306_WHITE);
+      display.drawRoundRect (108, 2, 20, 30,3, SSD1306_WHITE);
 
-      display.setTextSize(2); // Setze die Textgröße. Du kannst diesen Wert anpassen.
-      display.print("67%"); // Drucke die Fehlermeldung
+      if (batPercent > 80){
+        display.fillRect(110, 6, 16, 5, SSD1306_WHITE);
+      }
+      if (batPercent > 60){
+        display.fillRect(110, 12, 16, 5, SSD1306_WHITE);
+      }
+      if (batPercent > 40){
+        display.fillRect(110, 18, 16, 5, SSD1306_WHITE);
+      }
+      if (batPercent > 20){
+        display.fillRect(110, 24, 16, 5, SSD1306_WHITE);
+      }
 
+    }
+
+    void displayDashboard(float requestKmh, float currentKmh, int batPercent, String mode){
+      display.clearDisplay(); // Lösche Displayinhalt
+      // bauer Displayinhalt neu auf
+      displaySpeedmode(mode); // Setze Geschwindigkeitsmodus (R/1/2/3/4)
+      displaySpeed(requestKmh, currentKmh); // Setze Kmh 
+      displayBat(batPercent);
+      
       display.display(); // Zeige die Änderungen auf dem Display an
     }
 
