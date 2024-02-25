@@ -17,11 +17,11 @@ const float HALL_ANALOG_MIN = 540; // Analog gelesene Spannung wenn Pedal nicht 
 
 // Angaben zur Geschwindigkeitsberechnung und überwachung
 const float RADIUSCM = 20.5; // Definiere Reifendurchmesser (Für Geschwindigkeitberechnung in Kmh) in cm
-const int MAX_KMH_MODE_R = 3; // Maximalgeschwindigkeit in KM/h beim Rückwertsfahren --> (Errechnet sich aus Reifendurchmesser RADIUSCM)
-const int MAX_KMH_MODE_1 = 3; // Maximalgeschwindigkeit in KM/h im Modus 1 --> (Errechnet sich aus Reifendurchmesser RADIUSCM)
+const int MAX_KMH_MODE_R = 4; // Maximalgeschwindigkeit in KM/h beim Rückwertsfahren --> (Errechnet sich aus Reifendurchmesser RADIUSCM)
+const int MAX_KMH_MODE_1 = 5; // Maximalgeschwindigkeit in KM/h im Modus 1 --> (Errechnet sich aus Reifendurchmesser RADIUSCM)
 const int MAX_KMH_MODE_2 = 9; // Maximalgeschwindigkeit in KM/h im Modus 2 --> (Errechnet sich aus Reifendurchmesser RADIUSCM) 
-const int MAX_KMH_MODE_3 = 18;// Maximalgeschwindigkeit in KM/h im Modus 3 --> (Errechnet sich aus Reifendurchmesser RADIUSCM)
-const int MAX_KMH_MODE_4 = 24; // Maximalgeschwindigkeit in KM/h im Modus 4 --> (Errechnet sich aus Reifendurchmesser RADIUSCM) 
+const int MAX_KMH_MODE_3 = 14;// Maximalgeschwindigkeit in KM/h im Modus 3 --> (Errechnet sich aus Reifendurchmesser RADIUSCM)
+const int MAX_KMH_MODE_4 = 18; // Maximalgeschwindigkeit in KM/h im Modus 4 --> (Errechnet sich aus Reifendurchmesser RADIUSCM) 
 String speedMode; // Gesetzter Geschwindigkeitesmodus -> Wert wird beim Einschalten/Booten gesetzt (setSpeedMode())
 int maxKmh; // Gesetzte Maximalgeschwindigkeit in Km/h -> Wert wird beim Einschalten/Booten gesetzt (setSpeedMode())
 

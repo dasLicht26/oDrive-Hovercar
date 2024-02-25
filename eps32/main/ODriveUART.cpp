@@ -31,13 +31,10 @@ void ODriveUART::setPosition(float position, int axis, float velocity_feedforwar
     serial_ << "p " << axis  << " " << position << " " << velocity_feedforward << " " << torque_feedforward << "\n";
 }
 
-void ODriveUART::setVelocity(float velocity) {
-    setVelocity(velocity, 0.0f);
-}
 
-void ODriveUART::setVelocity(float velocity, float torque_feedforward) {
-    serial_ << "v " << 0  << " " << velocity << " " << torque_feedforward << "\n";
-    serial_ << "v " << 1  << " " << velocity * -1 << " " << torque_feedforward << "\n";
+void ODriveUART::setVelocity(float velocity) {
+    serial_ << "v " << 0  << " " << velocity * -1 <<  "\n";
+    serial_ << "v " << 1  << " " << velocity << "\n";
 }
 
 void ODriveUART::setTorque(float torque, int axis) {
@@ -47,7 +44,6 @@ void ODriveUART::setTorque(float torque, int axis) {
 void ODriveUART::resetWatchdog(int axis) {
     serial_ << "u " << axis << "\n";
 }
-
 
 void ODriveUART::trapezoidalMove(float position, int axis) {
     serial_ << "t " << axis << " " << position << "\n";
