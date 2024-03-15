@@ -19,26 +19,27 @@ void ODriveUART::clearErrors() {
     serial_ << "sc\n";
 }
 
-void ODriveUART::setPosition(float position, int axis) {
-    setPosition(position, axis, 0.0f, 0.0f);
+void ODriveUART::saveConfig() {
+    serial_ << "ss\n";
 }
 
-void ODriveUART::setPosition(float position, int axis, float velocity_feedforward) {
-    setPosition(position, axis, velocity_feedforward, 0.0f);
+void ODriveUART::reboot() {
+    serial_ << "sr\n";
 }
-
-void ODriveUART::setPosition(float position, int axis, float velocity_feedforward, float torque_feedforward) {
-    serial_ << "p " << axis  << " " << position << " " << velocity_feedforward << " " << torque_feedforward << "\n";
-}
-
 
 void ODriveUART::setVelocity(float velocity) {
     serial_ << "v " << 0  << " " << velocity * -1 <<  "\n";
     serial_ << "v " << 1  << " " << velocity << "\n";
 }
 
-void ODriveUART::setTorque(float torque, int axis) {
-    serial_ << "c " << axis << " " << torque << "\n";
+void ODriveUART::setVelocity(float velocity, float torque) {
+    serial_ << "v " << 0  << " " << velocity * -1 <<" " << torque * -1<< "\n";
+    serial_ << "v " << 1  << " " << velocity << " " << torque << "\n";
+}
+
+void ODriveUART::setTorque(float torque) {
+    serial_ << "c " << 0 << " " << torque * -1 << "\n";
+    serial_ << "c " << 1 << " " << torque << "\n";
 }
 
 void ODriveUART::resetWatchdog(int axis) {
@@ -86,7 +87,12 @@ String ODriveUART::getParameterAsString(const String& path) {
     return response;
 }
 
+
 void ODriveUART::setParameter(const String& path, const String& value) {
+    serial_ << "w " << path << " " << value << "\n";
+}
+
+void ODriveUART::setParameter(const String& path, float value) {
     serial_ << "w " << path << " " << value << "\n";
 }
 

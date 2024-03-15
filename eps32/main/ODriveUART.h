@@ -23,6 +23,8 @@ public:
      * resistor if it was disabled due to an error.
      */
     void clearErrors();
+    void saveConfig();
+    void reboot();
 
     /**
      * @brief Sends a new position setpoint.
@@ -63,7 +65,7 @@ public:
     /**
      * @brief Sends a new torque setpoint.
      */
-    void setTorque(float torque, int axis);
+    void setTorque(float torque);
 
     /**
      * @brief Puts the ODrive into trapezoidal trajectory mode and sends a new
@@ -97,7 +99,7 @@ public:
     long getParameterAsInt(const String& path) { return getParameterAsString(path).toInt(); }
     float getParameterAsFloat(const String& path) { return getParameterAsString(path).toFloat(); }
     void setParameter(const String& path, const String& value);
-    void setParameter(const String& path, long value) { setParameter(path, String(value)); }
+    void setParameter(const String& path, float value);
 
     /**
      * @brief Tells the ODrive to change its axis state.
