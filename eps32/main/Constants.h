@@ -26,9 +26,9 @@ const float HALL_ANALOG_MIN = 540; // Analog gelesene Spannung wenn Pedal nicht 
 */
 
 enum ControlModus{
-  SPEED_CONTROL = 0;
-  TORQUE_CONTROL = 1; 
-}
+  SPEED_CONTROL = 0,
+  TORQUE_CONTROL = 1 
+};
 
 
 // Struktur für die Parameter der Speedmodi
