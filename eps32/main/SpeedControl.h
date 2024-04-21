@@ -9,14 +9,15 @@ const int HALL_RESOLUTION = 100; //
 
 class SpeedController {
   public:
-    SpeedController() : currentModus(MODUS_1) {} // Initialisiere mit Modus 1
+    SpeedController() : currentSpeedModus(MODUS_1) {} // Initialisiere mit Modus 1
+    SpeedController() : currentControlModus(SPEED_CONTROL) {} // Initialisiere mit Modus 1
 
     // setze SpeedModus (MODUS_1, MODUS_...)
     void setSpeedModus(SpeedModus modus) {
         currentSpeedModus = modus;
       }
 
-    void setControlMode(ControlMode cmodus){
+    void setControlModus(ControlModus cmodus){
         currentControlModus = cmodus;
       }
 
@@ -63,11 +64,8 @@ class SpeedController {
     return speedMS / circumferenceM; // Berechne RPS
   }
 
-  private:
-    SpeedModus currentSpeedModus; // Aktuell ausgewählter Geschwindigkeitsmodus
-
-    // Gibt den Hallinput als Wert zwischen 0 und 100 zurück
-    int getHallMappedValue(int gpio) {
+  // Gibt den Hallinput als Wert zwischen 0 und 100 zurück
+  int getHallMappedValue(int gpio) {
       int rawValue = analogRead(gpio);
       int toReturn = map(rawValue, minAnalogeValue, maxAnalogeValue, 0, HALL_RESOLUTION); // 0.5V und 3.0V auf 0-100 Skala mappen
 
@@ -80,6 +78,10 @@ class SpeedController {
       }
       return toReturn; 
     }
+
+  private:
+    SpeedModus currentSpeedModus; // Aktuell ausgewählter Geschwindigkeitsmodus
+    ControlModus currentControldModus; // Aktuell ausgewählter SteuerungsModus
 };
 
 #endif

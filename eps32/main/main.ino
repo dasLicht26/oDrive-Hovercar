@@ -29,7 +29,6 @@ SpeedController speedController; //initialisiere Geschwinigkeitskontrolle
 HardwareSerial odrive_serial(ODRIVE_UART); // Verwender UART im ESP32
 ODriveUART odrive(odrive_serial);
 
-
 void setSpeedMode(){
   pinMode(BUTTON_1, INPUT_PULLUP); 
   pinMode(BUTTON_2, INPUT_PULLUP); 
@@ -37,29 +36,33 @@ void setSpeedMode(){
   int buttonTwoState = digitalRead(BUTTON_2);
 
   if(buttonOneState == LOW && buttonTwoState == LOW){
-    speedMode = "4";
-    maxKmh = MAX_KMH_MODE_4;
+    speedController.setSpeedModus(MODUS_4);
   }
   else if (buttonOneState == LOW){
-    speedMode = "2";
-    maxKmh = MAX_KMH_MODE_2;
+    speedController.setSpeedModus(MODUS_2);
   }
   else if (buttonTwoState == LOW){
-    speedMode = "3";
-    maxKmh = MAX_KMH_MODE_3;
+    speedController.setSpeedModus(MODUS_3)
   }
   else {
-    speedMode = "1";
-    maxKmh = MAX_KMH_MODE_1;
+    speedController.setSpeedModus(MODUS_1)
   }
 }
+
+void setControlMode(){
+    if(speedController.getHallMappedValue(HALL_FW_PIN) > 50){
+      speedController.setControlMode(TORQUE_CONTROL);
+    }
+    else{
+      speedController.setControlMode(SPEED_CONTROL);
+    }
+  }
 
 void setup() {
     // Setup Controller
     Serial.begin(115200); // starte seriellen Monitor zu ESP32
     odrive_serial.begin(ODRIVE_BAUD_RATE, SERIAL_8N1, ODRIVE_RX, ODRIVE_TX); // starte serielle Verbindung zum odrive
     setSpeedMode(); // setze Geschwindigkeitsbegrenzungen 
-    speedController.setup(HALL_ANALOG_MAX, HALL_ANALOG_MIN, HALL_BW_PIN, HALL_FW_PIN, MAX_NM, maxKmh, MAX_KMH_MODE_R, RADIUSCM);
     displayManager.setup();
 
     //displayManager.vBatLowError();

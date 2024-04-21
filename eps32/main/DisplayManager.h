@@ -14,8 +14,7 @@
 #define OLED_SDA 21 // GPIO21
 #define OLED_SCL 22 // GPIO22
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET)
 
 
 class DisplayManager {
