@@ -2,36 +2,23 @@
 #define SpeedControler_h
 #include <cmath> // Für M_PI
 #include <Arduino.h>
+#include "Constants.h"
 
 
 const int HALL_RESOLUTION = 100; // 
 
 class SpeedController {
   public:
-    void setup(int _maxAnalogeValue, int _minAnalogeValue, int _backwartGPIO, int _forwartGPIO, float _maxNm, int _maxKmhFW, int _maxKmhBW, float _radiusCm) {
-      maxAnalogeValue = _maxAnalogeValue; // max analoger Input 
-      minAnalogeValue = _minAnalogeValue; // min anlaoger Input
-      backwartGPIO = _backwartGPIO; // GPIO Rückwärts-Pedale
-      forwartGPIO = _forwartGPIO; // GPIO Vorwärts-Pedale
-      maxNm = _maxNm;
-      maxKmhFW = _maxKmhFW; // maximal erlaubte Geschwindigkeit Vorwärts
-      maxKmhBW = _maxKmhBW; // maximal erlaubte Geschwindigkeit Rückwerts
-      radiusCm = _radiusCm; // Reifendurchmesser
-    }
+    SpeedController() : currentModus(MODUS_1) {} // Initialisiere mit Modus 1
 
-    int getHallMappedValue(int gpio) {
-      int rawValue = analogRead(gpio);
-      int toReturn = map(rawValue, minAnalogeValue, maxAnalogeValue, 0, HALL_RESOLUTION); // 0.5V und 3.0V auf 0-100 Skala mappen
+    // setze SpeedModus (MODUS_1, MODUS_...)
+    void setSpeedModus(SpeedModus modus) {
+        currentSpeedModus = modus;
+      }
 
-      // verhinden, dass Werte unter 0 oder über HALL_RESOLUTION zurückgegeben werden
-      if(toReturn <= 0){
-        toReturn = 0;
+    void setControlMode(ControlMode cmodus){
+        currentControlModus = cmodus;
       }
-      if(toReturn >= HALL_RESOLUTION){
-        toReturn = HALL_RESOLUTION;
-      }
-      return toReturn; 
-    }
 
     float getRequestedRPS() {
       int hallValue = getHallMappedValue(forwartGPIO) - getHallMappedValue(backwartGPIO);
@@ -77,14 +64,22 @@ class SpeedController {
   }
 
   private:
-    int maxAnalogeValue; // max analoger Input
-    int minAnalogeValue; // min analoger Input
-    int backwartGPIO;    // GPIO Rückwärts-Pedale
-    int forwartGPIO;     // GPIO Vorwärts-Pedale
-    float maxNm;
-    int maxKmhFW;        // maximal erlaubte Geschwindigkeit Vorwärts in Km/h
-    int maxKmhBW;        // maximal erlaubte Geschwindigkeit Rückwärts in Km/h
-    float radiusCm;      // Reifendurchmesser
+    SpeedModus currentSpeedModus; // Aktuell ausgewählter Geschwindigkeitsmodus
+
+    // Gibt den Hallinput als Wert zwischen 0 und 100 zurück
+    int getHallMappedValue(int gpio) {
+      int rawValue = analogRead(gpio);
+      int toReturn = map(rawValue, minAnalogeValue, maxAnalogeValue, 0, HALL_RESOLUTION); // 0.5V und 3.0V auf 0-100 Skala mappen
+
+      // verhinden, dass Werte unter 0 oder über HALL_RESOLUTION zurückgegeben werden
+      if(toReturn <= 0){
+        toReturn = 0;
+      }
+      if(toReturn >= HALL_RESOLUTION){
+        toReturn = HALL_RESOLUTION;
+      }
+      return toReturn; 
+    }
 };
 
 #endif

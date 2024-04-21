@@ -25,16 +25,6 @@ const float HALL_ANALOG_MIN = 540; // Analog gelesene Spannung wenn Pedal nicht 
 ==========================================
 */
 
-// Definiere die Speedmodi als enum
-enum SpeedModus {
-  MODUS_1,
-  MODUS_2,
-  MODUS_3,
-  MODUS_4,
-  MODUS_R,
-  MODUS_T
-};
-
 // Struktur für die Parameter der Speedmodi
 struct SpeedModusParameter {
   const char* name; // Name des Modus
@@ -42,14 +32,23 @@ struct SpeedModusParameter {
   float maxTorque; // Beschleunigungswert
 };
 
+// Definiere die verfügbaren Speedmodi als enum
+enum SpeedModus {
+  MODUS_1,
+  MODUS_2,
+  MODUS_3,
+  MODUS_4,
+  MODUS_R
+};
+
 // Definiere die Parameter für jeden Modus
+// {str: Name des Modus, int:max Km/h, int:max Drehmoment}
 const SpeedModusParameter modiParameter[] = {
-  {"1", 5, 10.0},
-  {"2", 8, 10.0},
-  {"3", 12, 10.0},
-  {"4", 16, 10.0},
+  {"1", 5, 2.0},
+  {"2", 8, 5.0},
+  {"3", 12, 8.0},
+  {"4", 16, 999.0},
   {"R", 4, 10.0},
-  {"T", 99, 999.99}
 };
 
 const float RADIUSCM = 20.5; // Definiere Reifendurchmesser (Für Geschwindigkeitberechnung in Kmh) in cm
@@ -61,4 +60,4 @@ const float RADIUSCM = 20.5; // Definiere Reifendurchmesser (Für Geschwindigkei
 */
 
 
-
+#endif
