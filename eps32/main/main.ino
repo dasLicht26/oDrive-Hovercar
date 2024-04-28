@@ -12,17 +12,6 @@ String speedMode; // Gesetzter Geschwindigkeitesmodus -> Wert wird beim Einschal
 int maxKmh; // Gesetzte Maximalgeschwindigkeit in Km/h -> Wert wird beim Einschalten/Booten gesetzt (setSpeedMode())
 bool idleMode = false; // ob sich odive im idlemode befindet 
 
-// angaben zur Batterie (Angaben für 36V Lipo-Akkus 10S2P)
-const int V_BAT_MAX = 41; // 41 Volt = 100% Ladung der Akkus, Werte darüber werden auf 41 abgeschnitten.
-const int V_BAT_MIN = 32; // 32 Volt = 0% Ladung des Akkus, das HoverCar nimmt kein Gas mehr an wenn es bereits eingeschalten ist (Es bremmst auf 0).
-const int V_BAT_MIN_START = 34; // Minimale Akkuladung um odrive in AXIS_STATE_CLOSED_LOOP_CONTROL zu versetzen. (darunter lässt sich das HooverCar nicht mehr einschalten)
-
-// Definiere ESP32 GPIO-Pins und UART-Schnittstelle
-const int ODRIVE_BAUD_RATE = 115200; // Baudrate zur Kommunikation mit oDrive (115200)
-const int ODRIVE_UART = 1; // verwendeter UART-Bus des ESP32 (UART1)
-const int ODRIVE_RX = 10; // verwendeter GPIO für RX UART-Bus des ESP32 (GPIO-10)
-const int ODRIVE_TX = 9; // verwendeter GPIO für TX UART-Bus des ESP32 (GPIO-9)
-
 
 DisplayManager displayManager; //initialisiere OLED-Display
 SpeedController speedController; //initialisiere Geschwinigkeitskontrolle
@@ -36,16 +25,16 @@ void setSpeedMode(){
   int buttonTwoState = digitalRead(BUTTON_2);
 
   if(buttonOneState == LOW && buttonTwoState == LOW){
-    speedController.setSpeedModus(MODUS_4);
+    speedController.setSpeedMode(MODE_4);
   }
   else if (buttonOneState == LOW){
-    speedController.setSpeedModus(MODUS_2);
+    speedController.setSpeedMode(MODE_2);
   }
   else if (buttonTwoState == LOW){
-    speedController.setSpeedModus(MODUS_3)
+    speedController.setSpeedMode(MODE_3);
   }
   else {
-    speedController.setSpeedModus(MODUS_1)
+    speedController.setSpeedMode(MODE_1);
   }
 }
 
@@ -216,16 +205,6 @@ void loop() {
 
   float requestKMH = speedController.convertRPStoKMh(requestRPS);
 
-  idleControle(odriveKMH, requestKMH);
-  //Serial.println(odriveKMH);
-  // lade Dashboard
-  if(requestRPS < -0.1 && odriveKMH > 0.5){
-    displayManager.displayDashboard(requestKMH, odriveKMH, vBatPercent, vBat, "R", MAX_KMH_MODE_R, amp);
-  }else{
-    displayManager.displayDashboard(requestKMH, odriveKMH, vBatPercent, vBat, speedMode, maxKmh, amp);
-  }
-
-  
 
   Serial.print("currentl:");
   Serial.print(odrive.getParameterAsString("axis0.motor.config.current_lim"));
@@ -238,10 +217,7 @@ void loop() {
   Serial.print("     vig");
   Serial.println(odrive.getParameterAsString("axis1.controller.config.vel_integrator_gain"));
 
-
-
   odrive.setVelocity(requestRPS);
-
 
   }
 

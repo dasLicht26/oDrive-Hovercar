@@ -5,45 +5,40 @@
 #include "Constants.h"
 
 
-const int HALL_RESOLUTION = 100; // 
 
 class SpeedController {
   public:
-    SpeedController() : currentSpeedModus(MODUS_1) {} // Initialisiere mit Modus 1
-    SpeedController() : currentControlModus(SPEED_CONTROL) {} // Initialisiere mit Modus 1
+    SpeedController() : currentSpeedMode(MODE_1), currentControlMode(TORQUE_CONTROL) {} //setzte Standartwerte
 
     // setze SpeedModus (MODUS_1, MODUS_...)
-    void setSpeedModus(SpeedModus modus) {
-        currentSpeedModus = modus;
+    void setSpeedMode(SpeedMode mode) {
+        currentSpeedMode = mode;
       }
 
-    void setControlModus(ControlModus cmodus){
-        currentControlModus = cmodus;
+    // setze ControllMode (SPEED_CONTROL, TORQUE_CONTROL)
+    void setControlMode(ControlMode mode){
+        currentControlMode = mode;
       }
 
     float getRequestedRPS() {
-      int hallValue = getHallMappedValue(forwartGPIO) - getHallMappedValue(backwartGPIO);
+      SpeedModusParameter mode = modiParameter[currentSpeedMode];
+      int hallValue = getHallMappedValue(HALL_FW_PIN) - getHallMappedValue(HALL_BW_PIN);
       float maxRPS;
-      if (hallValue < 0){
-        maxRPS = convertKMHtoRPS(maxKmhBW);
-      }
-      else {
-        maxRPS = convertKMHtoRPS(maxKmhFW);
-      }
+
+      maxRPS = convertKMHtoRPS(mode.maxSpeed);
+
       float toReturn = map(hallValue, 0, HALL_RESOLUTION, 0, maxRPS*100); 
 
       return toReturn/100; 
     }
 
     float getRequestedNm() {
-      int hallValue = getHallMappedValue(forwartGPIO) - getHallMappedValue(backwartGPIO);
+      SpeedModusParameter mode = modiParameter[currentSpeedMode];
+      int hallValue = getHallMappedValue(HALL_FW_PIN) - getHallMappedValue(HALL_BW_PIN);
       float maxRPS;
-      if (hallValue < 0){
-        maxRPS = convertKMHtoRPS(maxKmhBW);
-      }
-      else {
-        maxRPS = convertKMHtoRPS(maxKmhFW);
-      }
+
+      maxRPS = convertKMHtoRPS(mode.maxSpeed);
+
       float toReturn = map(hallValue, 0, HALL_RESOLUTION, 0, maxRPS*100); 
 
       return toReturn/100; 
@@ -51,14 +46,14 @@ class SpeedController {
 
 
   float convertRPStoKMh(float RPS) {
-    float radiusM = radiusCm / 100.0; // Konvertiere cm in m
+    float radiusM = RADIUSCM / 100.0; // Konvertiere cm in m
     float circumferenceM  = M_PI * radiusM; // Berechne den Umfang in Metern
     float speedMS = circumferenceM * RPS; // m/s
     return speedMS * 3.6 *-1; // Konvertiere m/s in km/h
   }
 
   float convertKMHtoRPS(float KMH) {
-    float radiusM = radiusCm / 100.0; // Konvertiere cm in m
+    float radiusM = RADIUSCM / 100.0; // Konvertiere cm in m
     float circumferenceM = M_PI * radiusM; // Berechne den Umfang in Metern
     float speedMS = KMH / 3.6; // Konvertiere km/h in m/s
     return speedMS / circumferenceM; // Berechne RPS
@@ -67,7 +62,7 @@ class SpeedController {
   // Gibt den Hallinput als Wert zwischen 0 und 100 zurück
   int getHallMappedValue(int gpio) {
       int rawValue = analogRead(gpio);
-      int toReturn = map(rawValue, minAnalogeValue, maxAnalogeValue, 0, HALL_RESOLUTION); // 0.5V und 3.0V auf 0-100 Skala mappen
+      int toReturn = map(rawValue, HALL_ANALOG_MIN, HALL_ANALOG_MAX, 0, HALL_RESOLUTION); // 0.5V und 3.0V auf 0-100 Skala mappen
 
       // verhinden, dass Werte unter 0 oder über HALL_RESOLUTION zurückgegeben werden
       if(toReturn <= 0){
@@ -80,8 +75,7 @@ class SpeedController {
     }
 
   private:
-    SpeedModus currentSpeedModus; // Aktuell ausgewählter Geschwindigkeitsmodus
-    ControlModus currentControldModus; // Aktuell ausgewählter SteuerungsModus
+    SpeedMode currentSpeedMode; // Aktuell ausgewählter Geschwindigkeitsmodus
+    ControlMode currentControlMode; // Aktuell ausgewählter SteuerungsModus
 };
-
 #endif

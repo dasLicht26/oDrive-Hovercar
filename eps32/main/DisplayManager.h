@@ -6,15 +6,8 @@
 #include "Constants.h"
 #include "Bootlogo.h"
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET    -1
 
-// Definiere die GPIO-Pins für das I2C-Display
-#define OLED_SDA 21 // GPIO21
-#define OLED_SCL 22 // GPIO22
-
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 
 class DisplayManager {
@@ -39,7 +32,7 @@ class DisplayManager {
       display.clearDisplay();
     }
 
-
+  
     void displayMessage(const String& message) {
       display.clearDisplay(); // Lösche den aktuellen Inhalt des Displays
       display.setTextSize(2); // Setze die Textgröße. 
