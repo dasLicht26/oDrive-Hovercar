@@ -59,7 +59,7 @@ class SpeedController {
     return speedMS / circumferenceM; // Berechne RPS
   }
 
-  // Gibt den Hallinput als Wert zwischen 0 und 100 zurück
+  // Gibt den Hallinput als Wert zwischen 0 und HALL_RESOLUTION (100) zurück
   int getHallMappedValue(int gpio) {
       int rawValue = analogRead(gpio);
       int toReturn = map(rawValue, HALL_ANALOG_MIN, HALL_ANALOG_MAX, 0, HALL_RESOLUTION); // 0.5V und 3.0V auf 0-100 Skala mappen
