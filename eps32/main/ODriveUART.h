@@ -4,6 +4,7 @@
 
 #include "Arduino.h"
 #include "ODriveEnums.h"
+#include "Constants.h"
 
 struct ODriveFeedback {
     float pos;
@@ -57,11 +58,25 @@ public:
     void resetWatchdog(int axis);
 
     /**
-     * @brief reset Watchdog.
+     * @brief reset Errors.
      */
     void resetErrors();
 
+    /**
+     * @brief axis.controller.config.vel_gain
+     */
+    void setVelocityGain(float velocity_gain);
 
+    /**
+     * @brief axis.controller.config.velocity_integrator_gain
+     */
+    void setVelocityIntegratorGain(float velocity_integrator_gain);
+
+    /**
+     * @brief axis.controller.config.control_mode
+     */
+    void setControlMode(const String& control_mode);
+    
     /**
      * @brief Sends a new torque setpoint.
      */
@@ -105,6 +120,7 @@ public:
      * @brief Tells the ODrive to change its axis state.
      */
     void setState(ODriveAxisState requested_state, int axis);
+    void setState(ODriveAxisState requested_state);
 
     /**
      * @brief Requests the current axis state from the ODrive.

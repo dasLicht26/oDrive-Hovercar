@@ -96,12 +96,32 @@ void ODriveUART::setParameter(const String& path, float value) {
     serial_ << "w " << path << " " << value << "\n";
 }
 
+void ODriveUART::setState(ODriveAxisState requested_state) {
+        setParameter("axis0.requested_state", String((long)requested_state));
+        setParameter("axis1.requested_state", String((long)requested_state));
+}
+
 void ODriveUART::setState(ODriveAxisState requested_state, int axis) {
     if (axis == 0) {
         setParameter("axis0.requested_state", String((long)requested_state));
     } else if (axis == 1) {
         setParameter("axis1.requested_state", String((long)requested_state));
     }
+}
+
+ void ODriveUART::setVelocityGain(float velocity_gain){
+    setParameter("axis0.controller.config.vel_gain", velocity_gain);
+    setParameter("axis1.controller.config.vel_gain", velocity_gain);
+}
+
+ void ODriveUART::setVelocityIntegratorGain(float velocity_integrator_gain){
+    setParameter("axis0.controller.config.velocity_integrator_gain", velocity_integrator_gain);
+    setParameter("axis1.controller.config.velocity_integrator_gain", velocity_integrator_gain);
+}
+
+ void ODriveUART::setControlMode(const String& control_mode){
+    setParameter("axis0.controller.config.control_mode", control_mode);
+    setParameter("axis1.controller.config.control_mode", control_mode);
 }
 
 ODriveAxisState ODriveUART::getState(int axis) {
