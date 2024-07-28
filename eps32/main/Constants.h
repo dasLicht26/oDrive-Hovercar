@@ -79,6 +79,8 @@ enum SpeedMode {
 // Debug-Menüzustände
 enum MenuState {
     MENU_MAIN,
+    MENU_DEBUG,
+    MENU_ADJUST_MAIN,
     MENU_ADJUST_VEL_GAIN,
     MENU_ADJUST_VEL_INTEGRATOR_GAIN,
     MENU_ADJUST_CONTROL_MODE,

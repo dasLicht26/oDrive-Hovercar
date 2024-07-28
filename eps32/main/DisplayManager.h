@@ -142,144 +142,159 @@ class DisplayManager {
 
 
     void displayErrors(ODriveErrors* errors, int errorCount) {
-        display.clearDisplay(); // Lösche den aktuellen Inhalt des Displays
-        display.setTextSize(1); // Setze die Textgröße
-        display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
+      display.clearDisplay(); // Lösche den aktuellen Inhalt des Displays
+      display.setTextSize(1); // Setze die Textgröße
+      display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
 
-        for (int i = 0; i < errorCount; i++) {
-            display.setCursor(0, i * 10); // Setze den Cursor an die entsprechende Position
-            display.print("Source: ");
-            display.print(errors[i].source);
-            display.print(" Code: ");
-            display.println(errors[i].errorCode);
-        }
+      for (int i = 0; i < errorCount; i++) {
+        display.setCursor(0, i * 10); // Setze den Cursor an die entsprechende Position
+        display.print("Source: ");
+        display.print(errors[i].source);
+        display.print(" Code: ");
+        display.println(errors[i].errorCode);
+      }
 
-        display.display(); // Zeige die Änderungen auf dem Display an
+      display.display(); // Zeige die Änderungen auf dem Display an
     }
 
 
     void updateMenu(bool buttonOK, bool buttonUP, bool buttonDOWN, SpeedController& speedController, ConfigManager& configManager) {
-        static bool lastButtonOK = false;
-        static bool lastButtonUP = false;
-        static bool lastButtonDOWN = false;
+      static bool lastButtonOK = false;
+      static bool lastButtonUP = false;
+      static bool lastButtonDOWN = false;
 
-        if (buttonOK && !lastButtonOK) {
-            switch (currentMenuState) {
-                case MENU_MAIN:
-                    currentMenuState = MENU_ADJUST_VEL_GAIN;
-                    break;
-                case MENU_ADJUST_VEL_GAIN:
-                    currentMenuState = MENU_ADJUST_VEL_INTEGRATOR_GAIN;
-                    break;
-                case MENU_ADJUST_VEL_INTEGRATOR_GAIN:
-                    currentMenuState = MENU_ADJUST_CONTROL_MODE;
-                    break;
-                case MENU_ADJUST_CONTROL_MODE:
-                    currentMenuState = MENU_SAVE_SETTINGS;
-                    break;
-                case MENU_SAVE_SETTINGS:
-                    saveSettings(speedController, configManager);
-                    currentMenuState = MENU_MAIN;
-                    break;
-            }
+      if (buttonOK && !lastButtonOK) {
+        switch (currentMenuState) {
+          case MENU_MAIN:
+            currentMenuState = MENU_DEBUG;
+            break;
+          case MENU_DEBUG:
+            currentMenuState = MENU_ADJUST_MAIN;
+            break;
+          case MENU_ADJUST_MAIN:
+            currentMenuState = MENU_ADJUST_VEL_GAIN;
+            break;
+          case MENU_ADJUST_VEL_GAIN:
+            currentMenuState = MENU_ADJUST_VEL_INTEGRATOR_GAIN;
+            break;
+          case MENU_ADJUST_VEL_INTEGRATOR_GAIN:
+            currentMenuState = MENU_ADJUST_CONTROL_MODE;
+            break;
+          case MENU_ADJUST_CONTROL_MODE:
+            currentMenuState = MENU_SAVE_SETTINGS;
+            break;
+          case MENU_SAVE_SETTINGS:             
+            currentMenuState = MENU_MAIN;
+            break;
         }
+      }
 
-        if (buttonUP && !lastButtonUP) {
-            switch (currentMenuState) {
-                case MENU_ADJUST_VEL_GAIN:
-                    speedController.setVelocityGain(speedController.getVelocityGain() + 0.1);
-                    break;
-                case MENU_ADJUST_VEL_INTEGRATOR_GAIN:
-                    speedController.setVelocityIntegratorGain(speedController.getVelocityIntegratorGain() + 0.1);
-                    break;
-                case MENU_ADJUST_CONTROL_MODE:
-                    if (speedController.getControlMode() == VELOCITY_CONTROL) {
-                        speedController.setControlMode(TORQUE_CONTROL);
-                    } else {
-                        speedController.setControlMode(VELOCITY_CONTROL);
-                    }
-                    break;
+      if (buttonUP && !lastButtonUP) {
+        switch (currentMenuState) {
+          case MENU_ADJUST_VEL_GAIN:
+            speedController.setVelocityGain(speedController.getVelocityGain() + 0.01);
+            break;
+          case MENU_ADJUST_VEL_INTEGRATOR_GAIN:
+            speedController.setVelocityIntegratorGain(speedController.getVelocityIntegratorGain() + 0.01);
+            break;
+          case MENU_ADJUST_CONTROL_MODE:
+            if (speedController.getControlMode() == VELOCITY_CONTROL) {
+                speedController.setControlMode(TORQUE_CONTROL);
+            } else {
+                speedController.setControlMode(VELOCITY_CONTROL);
             }
+            break;
+          case MENU_SAVE_SETTINGS:
+            saveSettings(speedController, configManager);
+            break;
         }
+      }
 
-        if (buttonDOWN && !lastButtonDOWN) {
-            switch (currentMenuState) {
-                case MENU_ADJUST_VEL_GAIN:
-                    speedController.setVelocityGain(speedController.getVelocityGain() - 0.1);
-                    break;
-                case MENU_ADJUST_VEL_INTEGRATOR_GAIN:
-                    speedController.setVelocityIntegratorGain(speedController.getVelocityIntegratorGain() - 0.1);
-                    break;
-                case MENU_ADJUST_CONTROL_MODE:
-                    if (speedController.getControlMode() == VELOCITY_CONTROL) {
-                        speedController.setControlMode(TORQUE_CONTROL);
-                    } else {
-                        speedController.setControlMode(VELOCITY_CONTROL);
-                    }
-                    break;
+      if (buttonDOWN && !lastButtonDOWN) {
+        switch (currentMenuState) {
+          case MENU_ADJUST_VEL_GAIN:
+            speedController.setVelocityGain(speedController.getVelocityGain() - 0.01);
+            break;
+          case MENU_ADJUST_VEL_INTEGRATOR_GAIN:
+            speedController.setVelocityIntegratorGain(speedController.getVelocityIntegratorGain() - 0.01);
+            break;
+          case MENU_ADJUST_CONTROL_MODE:
+            if (speedController.getControlMode() == VELOCITY_CONTROL) {
+                speedController.setControlMode(TORQUE_CONTROL);
+            } else {
+                speedController.setControlMode(VELOCITY_CONTROL);
             }
+            break;
         }
+      }
 
-        lastButtonOK = buttonOK;
-        lastButtonUP = buttonUP;
-        lastButtonDOWN = buttonDOWN;
+      lastButtonOK = buttonOK;
+      lastButtonUP = buttonUP;
+      lastButtonDOWN = buttonDOWN;
 
-        displayMenu(speedController.getVelocityGain(), speedController.getVelocityIntegratorGain(), speedController.getControlMode());
+      displayMenu(speedController.getVelocityGain(), speedController.getVelocityIntegratorGain(), speedController.getControlMode());
     }
 
     void displayMenu(float vel_gain, float vel_integrator_gain, ControlMode control_mode) {
-        display.clearDisplay();
-        display.setTextSize(1);
-        display.setTextColor(SSD1306_WHITE);
-        display.setCursor(0, 0);
+      display.clearDisplay();
+      display.setTextSize(1);
+      display.setTextColor(SSD1306_WHITE);
+      display.setCursor(0, 0);
 
-        switch (currentMenuState) {
-            case MENU_MAIN:
-                display.println("Main Menu");
-                display.println("1. Vel Gain");
-                display.println("2. Vel Int Gain");
-                display.println("3. Control Mode");
-                display.println("4. Save Settings");
-                break;
-            case MENU_ADJUST_VEL_GAIN:
-                display.println("Adjust Vel Gain");
-                display.print("Value: ");
-                display.println(vel_gain);
-                display.println("UP/DOWN to change");
-                display.println("OK to confirm");
-                break;
-            case MENU_ADJUST_VEL_INTEGRATOR_GAIN:
-                display.println("Adjust Vel Int Gain");
-                display.print("Value: ");
-                display.println(vel_integrator_gain);
-                display.println("UP/DOWN to change");
-                display.println("OK to confirm");
-                break;
-            case MENU_ADJUST_CONTROL_MODE:
-                display.println("Adjust Control Mode");
-                display.print("Current: ");
-                display.println(control_mode == VELOCITY_CONTROL ? "Velocity" : "Torque");
-                display.println("UP/DOWN to toggle");
-                display.println("OK to confirm");
-                break;
-            case MENU_SAVE_SETTINGS:
-                display.println("Save Settings");
-                display.println("Settings saved!");
-                break;
-        }
+      switch (currentMenuState) {
+        case MENU_MAIN:
+          display.println("some Main - Menu");
+          break;
+        case MENU_DEBUG:
+          display.println("some DEBUG - Menu");
+          break;  
+        case MENU_ADJUST_MAIN:
+          display.println("Settings Menu");
+          display.println("1. Vel Gain");
+          display.println("2. Vel Int Gain");
+          display.println("3. Control Mode");
+          display.println("4. Save Settings");
+          break;
+        case MENU_ADJUST_VEL_GAIN:
+          display.println("Adjust Vel Gain");
+          display.print("Value: ");
+          display.println(vel_gain);
+          display.println("UP/DOWN to change");
+          display.println("OK to confirm");
+          break;
+        case MENU_ADJUST_VEL_INTEGRATOR_GAIN:
+          display.println("Adjust Vel Int Gain");
+          display.print("Value: ");
+          display.println(vel_integrator_gain);
+          display.println("UP/DOWN to change");
+          display.println("OK to confirm");
+          break;
+        case MENU_ADJUST_CONTROL_MODE:
+          display.println("Adjust Control Mode");
+          display.print("Current: ");
+          display.println(control_mode == VELOCITY_CONTROL ? "Velocity" : "Torque");
+          display.println("UP/DOWN to toggle");
+          display.println("OK to confirm");
+          break;
+        case MENU_SAVE_SETTINGS:
+          display.println("Save Settings");
+          display.println("Press UP to save!");
+          display.println("oDrive will restart");
+          break;
+      }
 
-        display.display();
-    }
+      display.display();
+      }
   private:
     MenuState currentMenuState = MENU_MAIN;
 
     void saveSettings(SpeedController& speedController, ConfigManager& configManager) {
         Settings settings;
-        settings.speedMode = speedController.getSpeedMode();
-        settings.controlMode = speedController.getControlMode();
-        settings.velocityGain = speedController.getVelocityGain();
-        settings.velocityIntegratorGain = speedController.getVelocityIntegratorGain();
-        configManager.saveSettings(settings);
+      settings.speedMode = speedController.getSpeedMode();
+      settings.controlMode = speedController.getControlMode();
+      settings.velocityGain = speedController.getVelocityGain();
+      settings.velocityIntegratorGain = speedController.getVelocityIntegratorGain();
+      configManager.saveSettings(settings);
 
     }
 };
