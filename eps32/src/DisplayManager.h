@@ -5,10 +5,12 @@
 #include <Adafruit_SSD1306.h>
 #include "Constants.h"
 #include "Bootlogo.h"
+#include "ODriveUART.h"
 #include "SpeedController.h"
 #include "ConfigManager.h"
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
 
 class DisplayManager {
   public:
@@ -20,21 +22,18 @@ class DisplayManager {
         Serial.println(F("SSD1306 allocation failed"));
         for (;;);
       }
-      delay(2000);
+      //delay(10);
       display.clearDisplay();
-
-            // Dein Bitmap anzeigen
-      display.drawBitmap( 0, 0, hoverLogo, SCREEN_WIDTH, SCREEN_HEIGHT, WHITE);
-
+      display.drawBitmap( 0, 0, hoverLogo, SCREEN_WIDTH, SCREEN_HEIGHT, WHITE); // Lade Bootlogo
       display.display();
     }
 
-    void displayLogo(){
-      display.clearDisplay();
+    // setze Menüzustand (z.B. bei Fehler)
+    void setMenuState(MenuState state) {
+      currentMenuState = state;
     }
 
-  
-    void displayMessage(const String& message) {
+    void displayGenericMessage(const String& message) {
       display.clearDisplay(); // Lösche den aktuellen Inhalt des Displays
       display.setTextSize(1); // Setze die Textgröße. 
       display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
@@ -43,122 +42,7 @@ class DisplayManager {
       display.display(); // Zeige die Änderungen auf dem Display an
     }
 
-    void displaySpeedmode(String mode){
-      display.drawRoundRect (0, 0, 22, 30,5, SSD1306_WHITE);
-      display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
-      display.setCursor(3, 5); // Setze den Cursor an den Anfang des Displays
-      display.setTextSize(3); // Setze die Textgröße. 
-      display.println(mode); 
-    }
-
-    void displayNm(float Nm){
-      display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
-      display.setCursor(24, 0); // Setze den Cursor an den Anfang des Displays
-      display.setTextSize(1); // Setze die Textgröße. 
-      display.println(String(Nm) + "Nm"); 
-    }
-
-    void displaySpeed(float requestKmh, float currentKmh, int maxKMH){
-      if (requestKmh < 0){
-        requestKmh = requestKmh * -1;
-      }
-      if (currentKmh < 0){
-        currentKmh = currentKmh * -1;
-      }
-
-      //set kmh Text
-      display.setCursor(24, 18); // Setze den Cursor hinter 'mode'
-      //set kmh Value
-      display.setTextSize(7); 
-      int kmhInt = currentKmh + 0.5;
-      String displayKmhValue;
-      if (kmhInt < 10){
-        displayKmhValue = "0" + String(kmhInt);
-        }
-      else {
-        displayKmhValue = String(kmhInt);
-        }
-      display.print(displayKmhValue); 
-    }
-
-    void displayBat(int batPercent, float vBat){
-      display.fillRect(115, 0, 6, 2, SSD1306_WHITE);
-      display.drawRoundRect (108, 2, 20, 30,3, SSD1306_WHITE);
-
-      if (batPercent > 80){
-        display.fillRect(110, 6, 16, 5, SSD1306_WHITE);
-      }
-      if (batPercent > 60){
-        display.fillRect(110, 12, 16, 5, SSD1306_WHITE);
-      }
-      if (batPercent > 40){
-        display.fillRect(110, 18, 16, 5, SSD1306_WHITE);
-      }
-      if (batPercent > 20){
-        display.fillRect(110, 24, 16, 5, SSD1306_WHITE);
-      }
-      display.setCursor(108, 34); // Setze den Cursor hinter 'mode'
-      display.setTextSize(1); 
-      display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
-      display.println(String(int(vBat + 0.5)) + "V");
-    }
-
-    void vBatLowError(float vBat){
-      bool show = false;
-      while(true){
-        display.clearDisplay(); // Lösche Displayinhalt
-        display.setCursor(0, 0); // Setze den Cursor hinter 'mode'
-        display.setTextSize(2); 
-        display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
-        display.println("Batterie");
-        display.print("leer");
-        if (show == false){
-          displayBat(21, vBat);
-          show = true;
-          }
-        else{
-          show=false;
-          }
-        display.display();
-        delay(1000);
-      }
-    }
-
-    void displayDashboard(float requestKmh, float currentKmh, int batPercent, float vBat, String mode, int maxKMH, float Nm){
-      display.clearDisplay(); // Lösche Displayinhalt
-      // bauer Displayinhalt neu auf
-      displaySpeedmode(mode); // Setze Geschwindigkeitsmodus (R/1/2/3/4)
-      displaySpeed(requestKmh, currentKmh, maxKMH); // Setze Kmh 
-      displayBat(batPercent, vBat);
-      displayNm(Nm);
-      display.display(); // Zeige die Änderungen auf dem Display an
-    }
-
-
-    void displayMessage(float number) {
-      String message = String(number); // Konvertiere float zu String
-      displayMessage(message); // Rufe die ursprüngliche Funktion au
-    }
-
-
-    void displayErrors(ODriveErrors* errors, int errorCount) {
-      display.clearDisplay(); // Lösche den aktuellen Inhalt des Displays
-      display.setTextSize(1); // Setze die Textgröße
-      display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
-
-      for (int i = 0; i < errorCount; i++) {
-        display.setCursor(0, i * 10); // Setze den Cursor an die entsprechende Position
-        display.print("Source: ");
-        display.print(errors[i].source);
-        display.print(" Code: ");
-        display.println(errors[i].errorCode);
-      }
-
-      display.display(); // Zeige die Änderungen auf dem Display an
-    }
-
-
-    void updateMenu(bool buttonOK, bool buttonUP, bool buttonDOWN, SpeedController& speedController, ConfigManager& configManager) {
+    void updateMenu(bool buttonOK, bool buttonUP, bool buttonDOWN, SpeedController& speedController, ConfigManager& configManager, ODriveUART& odrive) {
       static bool lastButtonOK = false;
       static bool lastButtonUP = false;
       static bool lastButtonDOWN = false;
@@ -232,10 +116,10 @@ class DisplayManager {
       lastButtonUP = buttonUP;
       lastButtonDOWN = buttonDOWN;
 
-      displayMenu(speedController.getVelocityGain(), speedController.getVelocityIntegratorGain(), speedController.getControlMode());
+      displayMenu(speedController, odrive);
     }
 
-    void displayMenu(float vel_gain, float vel_integrator_gain, ControlMode control_mode) {
+    void displayMenu(SpeedController& speedController, ODriveUART& odrive) {
       display.clearDisplay();
       display.setTextSize(1);
       display.setTextColor(SSD1306_WHITE);
@@ -243,7 +127,12 @@ class DisplayManager {
 
       switch (currentMenuState) {
         case MENU_MAIN:
-          display.println("some Main - Menu");
+          mode_parameter = speedController.getSpeedModeParameter();
+          bat_voltage = odrive.getParameterAsFloat("vbus_voltage");
+          bat_percent = map(bat_voltage, V_BAT_MIN, V_BAT_MAX, 0, 100);
+          request_kmh = speedController.getRequestedKMH();
+          current_kmh = speedController.getCurrentKMH();
+          displayDashboard(request_kmh, current_kmh, bat_percent, bat_voltage, mode_parameter.name, mode_parameter.maxSpeed);
           break;
         case MENU_DEBUG:
           display.println("some DEBUG - Menu");
@@ -258,21 +147,21 @@ class DisplayManager {
         case MENU_ADJUST_VEL_GAIN:
           display.println("Adjust Vel Gain");
           display.print("Value: ");
-          display.println(vel_gain);
+          display.println(speedController.getVelocityGain());
           display.println("UP/DOWN to change");
           display.println("OK to confirm");
           break;
         case MENU_ADJUST_VEL_INTEGRATOR_GAIN:
           display.println("Adjust Vel Int Gain");
           display.print("Value: ");
-          display.println(vel_integrator_gain);
+          display.println(speedController.getVelocityIntegratorGain());
           display.println("UP/DOWN to change");
           display.println("OK to confirm");
           break;
         case MENU_ADJUST_CONTROL_MODE:
           display.println("Adjust Control Mode");
           display.print("Current: ");
-          display.println(control_mode == VELOCITY_CONTROL ? "Velocity" : "Torque");
+          display.println(speedController.getControlMode() == VELOCITY_CONTROL ? "Velocity" : "Torque");
           display.println("UP/DOWN to toggle");
           display.println("OK to confirm");
           break;
@@ -281,21 +170,129 @@ class DisplayManager {
           display.println("Press UP to save!");
           display.println("oDrive will restart");
           break;
+        case ERROR_LOW_VOLTAGE:
+          bat_voltage = odrive.getParameterAsFloat("vbus_voltage");
+          vBatLowError(bat_voltage);
+          break;
+        case ERROR_ODRIVE:
+          std::vector<ODriveErrors> errors = speedController.getErrors();
+          for (const auto& error : errors) {
+              Serial.print("Error from ");
+              Serial.print(error.source.c_str());
+              Serial.print(": ");
+              Serial.println(error.errorCode);
+    }
+          displayErrors(errors);
+          break;
       }
-
       display.display();
-      }
+    }
+
   private:
-    MenuState currentMenuState = MENU_MAIN;
+    SpeedModeParameter mode_parameter;
+    int error_count;
+    int bat_percent;
+    float bat_voltage;
+    float request_kmh;
+    float current_kmh;
+    MenuState currentMenuState = MENU_MAIN; // setze Standardmenüzustand
 
     void saveSettings(SpeedController& speedController, ConfigManager& configManager) {
-        Settings settings;
+      Settings settings;
       settings.speedMode = speedController.getSpeedMode();
       settings.controlMode = speedController.getControlMode();
       settings.velocityGain = speedController.getVelocityGain();
       settings.velocityIntegratorGain = speedController.getVelocityIntegratorGain();
       configManager.saveSettings(settings);
+    }
 
+    void displaySpeedmode(String mode_name){
+      display.drawRoundRect (0, 0, 22, 30,5, SSD1306_WHITE);
+      display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
+      display.setCursor(3, 5); // Setze den Cursor an den Anfang des Displays
+      display.setTextSize(3); // Setze die Textgröße. 
+      display.println(mode_name); 
+    }
+
+    void displaySpeed(float requestKmh, float currentKmh, int maxKMH){
+      if (requestKmh < 0){
+        requestKmh = requestKmh * -1;
+      }
+      if (currentKmh < 0){
+        currentKmh = currentKmh * -1;
+      }
+
+      display.setCursor(24, 18); // Setze den Cursor hinter 'mode'
+      display.setTextSize(7); 
+      int kmhInt = currentKmh + 0.5;
+      String displayKmhValue;
+      if (kmhInt < 10){
+        displayKmhValue = "0" + String(kmhInt);
+        }
+      else {
+        displayKmhValue = String(kmhInt);
+        }
+      display.print(displayKmhValue); 
+    }
+
+    void displayBat(int bat_percent, float bat_voltage){
+      display.fillRect(115, 0, 6, 2, SSD1306_WHITE);
+      display.drawRoundRect (108, 2, 20, 30,3, SSD1306_WHITE);
+
+      if (bat_percent > 80){
+        display.fillRect(110, 6, 16, 5, SSD1306_WHITE);
+      }
+      if (bat_percent > 60){
+        display.fillRect(110, 12, 16, 5, SSD1306_WHITE);
+      }
+      if (bat_percent > 40){
+        display.fillRect(110, 18, 16, 5, SSD1306_WHITE);
+      }
+      if (bat_percent > 20){
+        display.fillRect(110, 24, 16, 5, SSD1306_WHITE);
+      }
+      display.setCursor(108, 34); // Setze den Cursor hinter 'mode'
+      display.setTextSize(1); 
+      display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
+      display.println(String(int(bat_voltage + 0.5)) + "V");
+    }
+
+    void vBatLowError(float bat_voltage){
+      bool show = false;
+      while(true){
+        display.clearDisplay(); // Lösche Displayinhalt
+        display.setCursor(0, 0); // Setze den Cursor hinter 'mode'
+        display.setTextSize(2); 
+        display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
+        display.println("Batterie");
+        display.print("leer");
+        if (show == false){
+          displayBat(21, bat_voltage);
+          show = true;
+          }
+        else{
+          show=false;
+          }
+        display.display();
+      }
+    }
+
+    void displayDashboard(float request_kmh, float current_kmh, int bat_percent, float bat_voltage, String mode_name, int max_kmh){
+      displaySpeedmode(mode_name); // Setze Geschwindigkeitsmodus (R/1/2/3/4)
+      displaySpeed(request_kmh, current_kmh, max_kmh); // Setze Kmh 
+      displayBat(bat_percent, bat_voltage);
+    }
+
+
+    void displayErrors(std::vector<ODriveErrors> errors) {
+      display.setTextSize(1); // Setze die Textgröße
+      int errorCount = errors.size();
+      for (const auto& error : errors) {
+          display.print("Error from ");
+          display.print(error.source.c_str());
+          display.print(": ");
+          display.println(error.errorCode);
+      }
     }
 };
 

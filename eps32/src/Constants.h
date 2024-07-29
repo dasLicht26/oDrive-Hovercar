@@ -69,11 +69,11 @@ enum ControlMode {
 
 // Definiere die verfügbaren Speedmodi als enum
 enum SpeedMode {
-  MODE_1,
-  MODE_2,
-  MODE_3,
-  MODE_4,
-  MODE_R
+  MODE_1 = 0,
+  MODE_2 = 1,
+  MODE_3 = 2,
+  MODE_4 = 3,
+  MODE_R = 4
 };
 
 // Mögliche-Menüzustände
@@ -98,7 +98,7 @@ struct Settings {
 }; //settingsLayout;
 
 // Struktur für die Parameter der Speedmodi
-struct SpeedModusParameter {
+struct SpeedModeParameter {
   const char* name; // Name des Modus
   float maxSpeed;   // Geschwindigkeitswert
   float maxTorque;  // Drehmoment in Nm
@@ -108,7 +108,7 @@ struct SpeedModusParameter {
 
 // Definiere die Parameter für jeden Modus
 // {str: Name des Modus, int:max Km/h, int:max Drehmoment in Nm}
-const SpeedModusParameter modiParameter[] = {
+const SpeedModeParameter modiParameter[] = {
   {"1", 5.0, 10.0},
   {"2", 8.0, 6.0},
   {"3", 12.0, 8.0},

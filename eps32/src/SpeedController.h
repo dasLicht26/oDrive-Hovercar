@@ -4,12 +4,13 @@
 #include <Arduino.h>
 #include "Constants.h"
 #include "ODriveUART.h"
+#include <vector>
+#include <string>
 
 
 class SpeedController {
   public:
     SpeedController() : odrive(nullptr){} // setze Standardwerte
-
 
     void setSpeedMode(SpeedMode mode) {
         current_speed_mode = mode;
@@ -17,6 +18,10 @@ class SpeedController {
 
     SpeedMode getSpeedMode() {
         return current_speed_mode;
+    }
+
+    SpeedModeParameter getSpeedModeParameter() {
+        return modiParameter[current_speed_mode];
     }
 
     void setControlMode(ControlMode mode) {
@@ -90,7 +95,7 @@ class SpeedController {
         }
     }
 
-    bool hardwareHealthCheck(){
+    void hardwareStartUpCheck(){
         // Batterie check
         while(odrive->getParameterAsFloat("vbus_voltage") == 0.0){
             delay(30);
@@ -147,35 +152,31 @@ class SpeedController {
         }
     }
 
-    // Fehlerkontrolle
-    int getErrors(ODriveErrors* errors) {
-            int errorCount = 0;
+    // Fehlerkontrolle, liefert eine Listen/struct mit Fehlern zurück
+    std::vector<ODriveErrors> getErrors() {
 
-            if (odrive != nullptr) {
-                int systemError = odrive->getParameterAsInt("error");
-                if (systemError != 0) {
-                    errors[errorCount].errorCode = systemError;
-                    errors[errorCount].source = "System";
-                    errorCount++;
-                }
-
-                int axis0Error = odrive->getParameterAsInt("axis0.error");
-                if (axis0Error != 0) {
-                    errors[errorCount].errorCode = axis0Error;
-                    errors[errorCount].source = "Axis0";
-                    errorCount++;
-                }
-
-                int axis1Error = odrive->getParameterAsInt("axis1.error");
-                if (axis1Error != 0) {
-                    errors[errorCount].errorCode = axis1Error;
-                    errors[errorCount].source = "Axis1";
-                    errorCount++;
-                }
+        if (odrive != nullptr) {
+            int systemError = odrive->getParameterAsInt("error");
+            if (systemError != 0) {
+                ODriveErrors a = {systemError, "System"};
+                odrive_errors.push_back(a);
             }
 
-            return errorCount;
+            int axis0Error = odrive->getParameterAsInt("axis0.error");
+            if (axis0Error != 0) {
+                ODriveErrors b = {axis0Error, "Axis0"};
+                odrive_errors.push_back(b);
+            }
+
+            int axis1Error = odrive->getParameterAsInt("axis1.error");
+            if (axis1Error != 0) {
+                ODriveErrors c = {axis1Error, "Axis1"};
+                odrive_errors.push_back(c);
+            }
         }
+
+        return odrive_errors;
+    }
 
     // Aktuelle Geschwindigkeit auslesen in RPS
     float getCurrentVelocity() {
@@ -194,8 +195,9 @@ class SpeedController {
         }
     }
 
+    // Zielgeschwindigkeit auslesen in RPS
     float getRequestedRPS() {
-        SpeedModusParameter mode = modiParameter[current_speed_mode];
+        SpeedModeParameter mode = modiParameter[current_speed_mode];
         int hallValue = getHallMappedValue(HALL_FW_PIN) - getHallMappedValue(HALL_BW_PIN);
         float maxRPS = convertKMHtoRPS(mode.maxSpeed);
 
@@ -203,14 +205,26 @@ class SpeedController {
         return toReturn/100; 
     }
 
+    // gibt die aktuelle angeforderte Geschwindigkeit in km/h zurück
+    float getRequestedKMH() {
+        return convertRPStoKMh(getRequestedRPS());
+    }
+
+    // gibt die aktuelle Geschwindigkeit in km/h zurück
+    float getCurrentKMH() {
+        return convertRPStoKMh(getCurrentVelocity());
+    }
+
+    // gibt das aktuelle angeforderte Drehmoment in Nm zurück
     float getRequestedNm() {
-        SpeedModusParameter mode = modiParameter[current_speed_mode];
+        SpeedModeParameter mode = modiParameter[current_speed_mode];
         int hallValue = getHallMappedValue(HALL_FW_PIN) - getHallMappedValue(HALL_BW_PIN);
         float maxNM = mode.maxTorque;
 
         float toReturn = map(hallValue, 0, HALL_RESOLUTION, 0, maxNM*100); 
         return toReturn/100; 
     }
+
 
     float convertRPStoKMh(float RPS) {
         float radiusM = RADIUSCM / 100.0; // Konvertiere cm in m
@@ -242,6 +256,8 @@ class SpeedController {
     }
 
   private:
+
+    std::vector<ODriveErrors> odrive_errors; // Liste mit fehlern
     SpeedMode current_speed_mode; // Aktuell ausgewählter Geschwindigkeitsmodus
     ControlMode current_control_mode; // Aktuell ausgewählter SteuerungsModus
     ODriveUART* odrive; // Zeiger auf die ODrive Instanz

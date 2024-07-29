@@ -17,9 +17,15 @@ ConfigManager configManager; // initialisiere Manager für dauerhaft gespeichert
 HardwareSerial odrive_serial(ODRIVE_UART); // Verwendeter UART im ESP32
 ODriveUART odrive(odrive_serial);
 
+MenuState currentMenuState = MENU_MAIN; // standard Menüzustand
 
+std::vector<ODriveErrors> odrive_errors; // Fehlerliste
+int errorCount; // Anzahl der Fehler
 
-MenuState currentMenuState = MENU_MAIN;
+// Knopfzustände
+bool buttonOK; 
+bool buttonUP;
+bool buttonDOWN;
 
 void setup() {
    
@@ -51,29 +57,28 @@ void setup() {
     speedController.setODrive(&odrive);
     //speedController.initializeODrive();
 
-    displayManager.displayMenu(speedController.getVelocityGain(), speedController.getVelocityIntegratorGain(), speedController.getControlMode());
-    //displayManager.displayMenu(currentMenuState, speedController.getVelocityGain(), speedController.getVelocityIntegratorGain());
+
   }   
 
 
 void loop() {
   // Knopfstatus lesen
-  bool buttonOK = !digitalRead(BUTTON_OK);
-  bool buttonUP = !digitalRead(BUTTON_UP);
-  bool buttonDOWN = !digitalRead(BUTTON_DOWN);
+  buttonOK = !digitalRead(BUTTON_OK);
+  buttonUP = !digitalRead(BUTTON_UP);
+  buttonDOWN = !digitalRead(BUTTON_DOWN);
 
-  /*
-  // Checke Fehler
-  ODriveErrors errors[3]; // hier werden die Fehler gespeichert, falls einer auftretetn sollte
-  int errorCount = speedController.getErrors(errors); // Anzahl gefundender Fehler
-  if (errorCount > 0){
-    displayManager.displayErrors(errors, errorCount);
+  // Menü aktualisieren
+  displayManager.updateMenu(buttonOK, buttonUP, buttonDOWN, speedController, configManager, odrive);
+  
+  // Lese Fehlerliste von ODrive
+  odrive_errors = speedController.getErrors();
+  errorCount = odrive_errors.size();
+  if(errorCount > 0){
+    displayManager.setMenuState(ERROR_ODRIVE);
     speedController.stopAll();
   }
-  */
-  // Menü aktualisieren
-  displayManager.updateMenu(buttonOK, buttonUP, buttonDOWN, speedController, configManager);
-  
+
+
   /*
   // Änderungen in den EEPROM schreiben, falls Werte angepasst wurden
   if (displayManager.isConfigChanged()) {
