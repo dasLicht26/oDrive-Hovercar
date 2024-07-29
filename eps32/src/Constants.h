@@ -76,11 +76,13 @@ enum SpeedMode {
   MODE_R
 };
 
-// Debug-Menüzustände
+// Mögliche-Menüzustände
 enum MenuState {
-    MENU_MAIN,
-    MENU_DEBUG,
-    MENU_ADJUST_MAIN,
+    ERROR_LOW_VOLTAGE, // Geringe Batteriespannung 
+    ERROR_ODRIVE, // oDrive hat Fehler festgestellt
+    MENU_MAIN,  // Hauptmenue -> Standardansicht
+    MENU_DEBUG, // Hidden -> Debug Ausgabe 
+    MENU_ADJUST_MAIN, 
     MENU_ADJUST_VEL_GAIN,
     MENU_ADJUST_VEL_INTEGRATOR_GAIN,
     MENU_ADJUST_CONTROL_MODE,
