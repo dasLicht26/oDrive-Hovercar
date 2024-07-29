@@ -82,11 +82,14 @@ class DisplayManager {
             speedController.setVelocityIntegratorGain(speedController.getVelocityIntegratorGain() + 0.01);
             break;
           case MENU_ADJUST_CONTROL_MODE:
-            if (speedController.getControlMode() == VELOCITY_CONTROL) {
+            switch (speedController.getControlMode()){
+              case VELOCITY_CONTROL:
                 speedController.setControlMode(TORQUE_CONTROL);
-            } else {
+                break;
+              case TORQUE_CONTROL:
                 speedController.setControlMode(VELOCITY_CONTROL);
-            }
+                break;
+              }
             break;
           case MENU_SAVE_SETTINGS:
             saveSettings(speedController, configManager);
@@ -103,11 +106,14 @@ class DisplayManager {
             speedController.setVelocityIntegratorGain(speedController.getVelocityIntegratorGain() - 0.01);
             break;
           case MENU_ADJUST_CONTROL_MODE:
-            if (speedController.getControlMode() == VELOCITY_CONTROL) {
+            switch (speedController.getControlMode()){
+              case VELOCITY_CONTROL:
                 speedController.setControlMode(TORQUE_CONTROL);
-            } else {
-                speedController.setControlMode(VELOCITY_CONTROL);
-            }
+                break;
+              case TORQUE_CONTROL:
+                speedController.setControlMode(TORQUE_CONTROL);
+                break;
+              }
             break;
         }
       }
@@ -135,7 +141,7 @@ class DisplayManager {
           displayDashboard(request_kmh, current_kmh, bat_percent, bat_voltage, mode_parameter.name, mode_parameter.maxSpeed);
           break;
         case MENU_DEBUG:
-          display.println("some DEBUG - Menu");
+          displayDebugMenu(speedController, odrive);
           break;  
         case MENU_ADJUST_MAIN:
           display.println("Settings Menu");
@@ -161,7 +167,7 @@ class DisplayManager {
         case MENU_ADJUST_CONTROL_MODE:
           display.println("Adjust Control Mode");
           display.print("Current: ");
-          display.println(speedController.getControlMode() == VELOCITY_CONTROL ? "Velocity" : "Torque");
+          display.println(getControlModeString(speedController.getControlMode()));
           display.println("UP/DOWN to toggle");
           display.println("OK to confirm");
           break;
@@ -197,6 +203,7 @@ class DisplayManager {
     float current_kmh;
     MenuState currentMenuState = MENU_MAIN; // setze Standardmenüzustand
 
+    // Speichere die aktuellen Einstellungen in den EEPROM
     void saveSettings(SpeedController& speedController, ConfigManager& configManager) {
       Settings settings;
       settings.speedMode = speedController.getSpeedMode();
@@ -204,6 +211,41 @@ class DisplayManager {
       settings.velocityGain = speedController.getVelocityGain();
       settings.velocityIntegratorGain = speedController.getVelocityIntegratorGain();
       configManager.saveSettings(settings);
+    }
+
+    String getControlModeString(ControlMode mode) {
+      switch (mode) {
+        case VELOCITY_CONTROL:
+          return "Velocity";
+        case TORQUE_CONTROL:
+          return "Torque";
+        default:
+            return "Unknown";
+      }
+    }
+
+
+    void displayDebugMenu(SpeedController& speedController, ODriveUART& odrive) {
+      // Erstelle den anzuzeigenden String
+      mode_parameter = speedController.getSpeedModeParameter();
+      bat_voltage = odrive.getParameterAsFloat("vbus_voltage");
+      bat_percent = map(bat_voltage, V_BAT_MIN, V_BAT_MAX, 0, 100);
+      float amp = speedController.getVBusCurrent(); // aktuelle amp
+      float nm = speedController.getCurrentNM();
+      request_kmh = speedController.getRequestedKMH();
+      current_kmh = speedController.getCurrentKMH();
+      float request_nm = speedController.getRequestedNm();
+      ControlMode control_mode = speedController.getControlMode();
+
+      String displayString = 
+              "Speed: " + String(current_kmh, 2) + " km/h\n" +
+              "Strom: " + String(amp, 2) + " A\n" +
+              "Drehmoment: " + String(nm, 2) + " Nm\n" +
+              "angef_kmh: " + String(request_kmh, 2) + " km/h\n" +
+              "angef_NM: " + String(request_nm, 2) + " Nm\n"
+              "ControlMode: " + getControlModeString(control_mode);
+
+      display.println(displayString);
     }
 
     void displaySpeedmode(String mode_name){
@@ -287,11 +329,12 @@ class DisplayManager {
     void displayErrors(std::vector<ODriveErrors> errors) {
       display.setTextSize(1); // Setze die Textgröße
       int errorCount = errors.size();
-      for (const auto& error : errors) {
-          display.print("Error from ");
-          display.print(error.source.c_str());
-          display.print(": ");
-          display.println(error.errorCode);
+      for (int i = 0; i < errorCount; i++) {
+        display.setCursor(0, i * 10);
+        display.print("Error ");
+        display.print(errors[i].source.c_str());
+        display.print(": ");
+        display.println(errors[i].errorCode);
       }
     }
 };

@@ -55,25 +55,30 @@ class SpeedController {
         odrive = odriveInstance;
     }
 
+    // Aktuelle Batterielast auslesen in Ampere
     float getVBusCurrent() {
       float amper = odrive->getParameterAsFloat("axis0.motor.current_control.Iq_measured") + odrive->getParameterAsFloat("axis1.motor.current_control.Iq_measured"); // aktuelle amp
       return amper;
     }
 
     // ODrive initialisieren/setup -> Ändert die Konfig dauerhaft
-    void initializeODrive() {
+    void saveODriveConfig() {
         if (odrive != nullptr) {
             odrive->clearErrors();
             odrive->setVelocityGain(velocity_gain); // Proportionaler Anteil p-PID
             odrive->setVelocityIntegratorGain(velocity_integrator_gain);  // Integratoranteil i-PID
 
-            if (current_control_mode == VELOCITY_CONTROL) {
-                odrive->setControlMode("CONTROL_MODE_VELOCITY_CONTROL");
-            } else if (current_control_mode == VOLTAGE_CONTROL) {
-                odrive->setControlMode("CONTROL_MODE_VOLTAGE_CONTROL");
-            }
-            else {
-                odrive->setControlMode("CONTROL_MODE_TORQUE_CONTROL");
+            switch (getControlMode()){
+                case TORQUE_CONTROL: {
+                    odrive->setParameter("axis0.controller.config.control_mode", "TORQUE_CONTROL");
+                    odrive->setParameter("axis1.controller.config.control_mode", "TORQUE_CONTROL");
+                    break;
+                }
+                case VELOCITY_CONTROL: {
+                    odrive->setParameter("axis0.controller.config.control_mode", "VELOCITY_CONTROL");
+                    odrive->setParameter("axis1.controller.config.control_mode", "VELOCITY_CONTROL");
+                    break;
+                }
             }
 
             odrive->setParameter("axis0.motor.config.current_lim", BAT_MAX_CURRENT/2);
@@ -154,6 +159,7 @@ class SpeedController {
 
     // Fehlerkontrolle, liefert eine Listen/struct mit Fehlern zurück
     std::vector<ODriveErrors> getErrors() {
+    	std::vector<ODriveErrors> odrive_errors; // Liste mit fehlern
 
         if (odrive != nullptr) {
             int systemError = odrive->getParameterAsInt("error");
@@ -188,14 +194,14 @@ class SpeedController {
         return 0.0;
     }
 
-    // Zielgeschwindigkeit setzen
+    // Zielgeschwindigkeit setzen in RPS
     void setTargetVelocity(float velocity) {
         if (odrive != nullptr) {
             odrive->setVelocity(velocity);
         }
     }
 
-    // Zielgeschwindigkeit auslesen in RPS
+    // Zielgeschwindigkeit auslesen in RPS aus Pedalen
     float getRequestedRPS() {
         SpeedModeParameter mode = modiParameter[current_speed_mode];
         int hallValue = getHallMappedValue(HALL_FW_PIN) - getHallMappedValue(HALL_BW_PIN);
@@ -225,6 +231,9 @@ class SpeedController {
         return toReturn/100; 
     }
 
+    float getCurrentNM() {
+        return getVBusCurrent() * odrive->getParameterAsFloat("axis0.motor.config.torque_constant");
+    }
 
     float convertRPStoKMh(float RPS) {
         float radiusM = RADIUSCM / 100.0; // Konvertiere cm in m
@@ -256,8 +265,6 @@ class SpeedController {
     }
 
   private:
-
-    std::vector<ODriveErrors> odrive_errors; // Liste mit fehlern
     SpeedMode current_speed_mode; // Aktuell ausgewählter Geschwindigkeitsmodus
     ControlMode current_control_mode; // Aktuell ausgewählter SteuerungsModus
     ODriveUART* odrive; // Zeiger auf die ODrive Instanz

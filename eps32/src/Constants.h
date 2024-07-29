@@ -62,9 +62,9 @@ struct ODriveErrors {
 
 //Kontroll Modi
 enum ControlMode { 
-    VELOCITY_CONTROL, 
-    TORQUE_CONTROL, 
-    VOLTAGE_CONTROL 
+    VELOCITY_CONTROL, // Geschwindigkeitssteuerung
+    TORQUE_CONTROL  // Drehmomentsteuerung
+    //VOLTAGE_CONTROL 
 };
 
 // Definiere die verfügbaren Speedmodi als enum

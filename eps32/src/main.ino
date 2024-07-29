@@ -54,8 +54,7 @@ void setup() {
     speedController.setControlMode(settings.controlMode);
     speedController.setVelocityGain(settings.velocityGain);
     speedController.setVelocityIntegratorGain(settings.velocityIntegratorGain);
-    speedController.setODrive(&odrive);
-    //speedController.initializeODrive();
+    //speedController.saveODriveConfig();
 
 
   }   
@@ -76,49 +75,14 @@ void loop() {
   if(errorCount > 0){
     displayManager.setMenuState(ERROR_ODRIVE);
     speedController.stopAll();
-  }
 
+    // Blockiert den Loop, bis der Fehler behoben wurde.
+    while (true) {
+      delay(1000);
+    }
+  }
 
   /*
-  // Änderungen in den EEPROM schreiben, falls Werte angepasst wurden
-  if (displayManager.isConfigChanged()) {
-      Settings settings;
-      settings.speedMode = speedController.getSpeedMode();
-      settings.controlMode = speedController.getControlMode();
-      settings.velocityGain = speedController.getVelocityGain();
-      settings.velocityIntegratorGain = speedController.getVelocityIntegratorGain();
-      configManager.saveSettings(settings);
-      displayManager.resetConfigChangedFlag();
-  }
-  */
-  /*
-  if (buttonOK){
-    configManager.save(66);
-    Serial.println("save");
-  }
-  if (buttonUP){
-    int test = configManager.load();
-    Serial.print(test);
-  }
-  if (buttonDOWN){
-    configManager.conf();
-    Serial.print("conf");
-  }
-  
-  */
-  
-
- /*
-
-
-
-
-  errorControl();
-
-  // leere seriellen Buffer (ggf. unnötig?)
-  //odrive_serial.flush();
-  //Serial.flush();
-
   // setze odrive Watchdog-Timer zurück, wenn dieser nicht alle 0.8 Sekunden zurückgesetzt wird, gehen die Motoren in Notaus (Falls es ein Verbindungsabbruch gibt)
   odrive.resetWatchdog(0); // Setze Watchdog Axis 0 zurück 
   //odrive.resetWatchdog(1); // Setze Watchdog Axis 0 zurück 
@@ -155,17 +119,11 @@ void loop() {
 
 
 
- // Erstelle den anzuzeigenden String
-  String displayString = "Speed: " + String(odriveKMH, 2) + " km/h\n" +
-                         "Strom: " + String(amp, 2) + " A\n" +
-                         "Drehmoment: " + String(nm, 2) + " Nm\n" +
-                         "angef_Speed: " + String(requestKMH, 2) + " km/h\n" +
-                         "angef_Drehmoment: " + String(requestNM, 2) + " Nm";
 
 
   Serial.print("current_nm:");
   Serial.println(requestNM);
-  displayManager.displayMessage(displayString);
+
   //Serial.print("  1:");
   //Serial.print(odrive.getParameterAsString("axis1.motor.config.current_lim_margin"));
 
