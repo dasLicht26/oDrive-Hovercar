@@ -81,16 +81,24 @@ class SpeedController {
                 }
             }
 
+            odrive->saveConfig();
+            odrive->reboot();
+        }
+    }
+
+    void setOdriveBaseConfig() {
+        if (odrive != nullptr) {
             odrive->setParameter("axis0.motor.config.current_lim", BAT_MAX_CURRENT/2);
             odrive->setParameter("axis1.motor.config.current_lim", BAT_MAX_CURRENT/2);
 
             odrive->setParameter("axis0.motor.config.current_lim_margin", BAT_MAX_CURRENT_MARGIN/2);
             odrive->setParameter("axis1.motor.config.current_lim_margin", BAT_MAX_CURRENT_MARGIN/2);
-
+            
             odrive->saveConfig();
             odrive->reboot();
         }
     }
+
 
     // Alle Bewegungen stoppen
     void stopAll() {
