@@ -59,13 +59,14 @@ struct ODriveErrors {
     String source;
 };
 
+bool idle_break = false; // ob im stillstehenden Zustand gebremst wird
 
 //Kontroll Modi
 enum ControlMode { 
-    VELOCITY_CONTROL, // Geschwindigkeitssteuerung
-    TORQUE_CONTROL  // Drehmomentsteuerung
-    //VOLTAGE_CONTROL 
+    VELOCITY_CONTROL, // Geschwindigkeitssteuerung (Ziel ist eine bestimmte RPS oder KMH)
+    TORQUE_CONTROL  // Drehmomentsteuerung (Ziel ist eine bestimmte Nm)
 };
+
 
 // Definiere die verfügbaren Speedmodi als enum
 enum SpeedMode {

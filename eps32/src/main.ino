@@ -27,6 +27,8 @@ bool buttonOK;
 bool buttonUP;
 bool buttonDOWN;
 
+bool debug_mode = false;
+
 void setup() {
    
     // Setup SerialBus-Controller
@@ -56,8 +58,14 @@ void setup() {
     speedController.setVelocityIntegratorGain(settings.velocityIntegratorGain);
     //speedController.saveODriveConfig();
 
-  }   
-
+    // checke nach Debug-Modus
+    
+    buttonUP = !digitalRead(BUTTON_UP);
+    buttonDOWN = !digitalRead(BUTTON_DOWN);
+    if (buttonDOWN && !buttonUP) {
+      debug_mode = true;
+    };   
+}
 
 void loop() {
   // Knopfstatus lesen
@@ -66,8 +74,9 @@ void loop() {
   buttonDOWN = !digitalRead(BUTTON_DOWN);
 
   // Menü aktualisieren
-  displayManager.updateMenu(buttonOK, buttonUP, buttonDOWN, speedController, configManager, odrive);
-  
+  if (debug_mode){
+    displayManager.updateMenu(buttonOK, buttonUP, buttonDOWN, speedController, configManager, odrive);
+  };
   // Lese Fehlerliste von ODrive
   odrive_errors = speedController.getErrors();
   errorCount = odrive_errors.size();
@@ -80,6 +89,9 @@ void loop() {
       delay(1000);
     }
   }
+
+  speedController.updateEngine();
+
 
   /*
   // setze odrive Watchdog-Timer zurück, wenn dieser nicht alle 0.8 Sekunden zurückgesetzt wird, gehen die Motoren in Notaus (Falls es ein Verbindungsabbruch gibt)

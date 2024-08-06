@@ -16,6 +16,29 @@ class SpeedController {
         current_speed_mode = mode;
     }
 
+    // steuert das Motorverhalten im entsprechenden Modus
+    void updateEngine() {
+        if (odrive != nullptr) {
+            requested_rps = getRequestedRPS();
+            current_rps = getCurrentVelocity();
+
+            if (idle_break == false){
+                idleControl();
+            }
+            
+            switch (getControlMode()) {
+                case TORQUE_CONTROL: {
+                    odrive->setTorque(getRequestedNm());
+                    break;
+                }
+                case VELOCITY_CONTROL: {
+                    setTargetRPS(requested_rps);
+                    break;
+                }
+            }
+        }
+    }
+
     SpeedMode getSpeedMode() {
         return current_speed_mode;
     }
@@ -144,18 +167,17 @@ class SpeedController {
     }
     
 
-    // Idle-Kontrolle
-    void idleControl(float odrive_kmh, float request_kmh) {
+    // Idle-Kontrolle --> Setzte AXIS_STATE_CLOSED_LOOP_CONTROL auf 0 wenn das Car stehen bleibt (man kann es dadurch schieben) 
+    void idleControl() {
         if (odrive != nullptr) {
-            request_kmh = abs(request_kmh);
-            if (request_kmh == 0 && odrive_kmh == 0) {
+            if (current_rps == 0 && fabs(requested_rps) == 0) {
                 if (odrive->getState(0) != AXIS_STATE_IDLE) {
                     odrive->setState(AXIS_STATE_IDLE, 0);
                     odrive->setState(AXIS_STATE_IDLE, 1);
                     delay(30);
                 }
             }
-            else if(request_kmh >= 0.2) {
+            else if(requested_rps >= 0.2) {
                 if (odrive->getState(0) != AXIS_STATE_CLOSED_LOOP_CONTROL) {
                     odrive->setState(AXIS_STATE_CLOSED_LOOP_CONTROL, 0);
                     odrive->setState(AXIS_STATE_CLOSED_LOOP_CONTROL, 1);
@@ -203,7 +225,7 @@ class SpeedController {
     }
 
     // Zielgeschwindigkeit setzen in RPS
-    void setTargetVelocity(float velocity) {
+    void setTargetRPS(float velocity) {
         if (odrive != nullptr) {
             odrive->setVelocity(velocity);
         }
@@ -278,5 +300,7 @@ class SpeedController {
     ODriveUART* odrive; // Zeiger auf die ODrive Instanz
     float velocity_gain; // p-PID
     float velocity_integrator_gain; // i-PID
+    float requested_rps; // Angeforderte Geschwindigkeit in RPS
+    float current_rps;
 };
 #endif
