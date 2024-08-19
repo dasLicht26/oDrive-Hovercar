@@ -26,6 +26,7 @@ class DisplayManager {
       display.clearDisplay();
       display.drawBitmap( 0, 0, hoverLogo, SCREEN_WIDTH, SCREEN_HEIGHT, WHITE); // Lade Bootlogo
       display.display();
+      delay(2000);
     }
 
     // setze Menüzustand (z.B. bei Fehler)
