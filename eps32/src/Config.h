@@ -114,6 +114,8 @@ enum MenuState {
 
 extern MenuState STANDARD_MENUE;
 
+extern bool DEBUG_MODE_AKIV;
+
 /*
 ==========================================
 ==       OPTIONS - oDrive               ==

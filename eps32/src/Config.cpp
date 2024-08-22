@@ -59,6 +59,7 @@ const float RADIUS_WHEEL_CM = 21.0; // Definiere Reifendurchmesser in cm (Für G
 ControlMode STANDARD_CONTROL_MODE = VELOCITY_CONTROL; // Standard Steuerungsmodus
 SpeedMode STANDARD_SPEED_MODE = MODE_1; // standard Geschwindigkeitsmodus
 MenuState STANDARD_MENUE = MENU_MAIN; // standard Menüzustand (Display)
+bool DEBUG_MODE_AKIV = false; // Debugmodus aktivieren
 
 // Parameter der einzelnen Speedmodi (Name (für Display), maxSpeed, maxTorque)
 const SpeedModeParameter modiParameter[] = {

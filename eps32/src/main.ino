@@ -10,7 +10,7 @@
 
 DisplayManager displayManager; //initialisiere OLED-Display
 SpeedController speedController; //initialisiere Geschwinigkeitskontrolle
-ConfigManager configManager; // initialisiere Manager für dauerhaft gespeicherte Einstellungen
+EepromSettings eepromSettings; // initialisiere Manager für dauerhaft gespeicherte Einstellungen
 HardwareSerial odrive_serial(ODRIVE_UART); // Verwendeter UART im ESP32
 ODriveUART odrive(odrive_serial);
 
@@ -29,30 +29,20 @@ void setup() {
     odrive_serial.begin(ODRIVE_BAUD_RATE, SERIAL_8N1, ODRIVE_RX, ODRIVE_TX); // starte serielle Verbindung zum odrive
 
     displayManager.setup(); // Initialisiere Display
-    configManager.setup(); // Initialisiere EPROM Speicher
+    eepromSettings.setup(); // Initialisiere EPROM Speicher
 
     // Initialisiere HardwareButtons
     pinMode(BUTTON_UP, INPUT_PULLUP); 
     pinMode(BUTTON_DOWN, INPUT_PULLUP); 
     pinMode(BUTTON_OK, INPUT_PULLUP); 
 
-    // Einstellungen laden
-    Settings settings;
-    configManager.loadSettings(settings);
 
-    // Geladene Einstellungen anwenden
-    Serial.println(settings.velocityGain);
-    speedController.setODrive(&odrive);
-    speedController.setSpeedMode(settings.speedMode);
-    speedController.setControlMode(settings.controlMode);
-    speedController.setVelocityGain(settings.velocityGain);
-    speedController.setVelocityIntegratorGain(settings.velocityIntegratorGain);
-    //speedController.saveODriveConfig();
-
-    //
+    // checke ob Debug-Modus aktiviert wird
+    if(!digitalRead(BUTTON_OK) && !digitalRead(BUTTON_DOWN)){
+      DEBUG_MODE_AKIV = true;
+    }
 
   }   
-
 
 void loop() {
   // Knopfstatus lesen
@@ -61,7 +51,7 @@ void loop() {
   buttonDOWN = !digitalRead(BUTTON_DOWN);
 
   // Menü aktualisieren
-  displayManager.updateMenu(buttonOK, buttonUP, buttonDOWN, speedController, configManager, odrive);
+  displayManager.updateMenu(buttonOK, buttonUP, buttonDOWN, speedController, odrive);
   
   // Lese Fehlerliste von ODrive
   odrive_errors = speedController.getErrors();
@@ -75,6 +65,8 @@ void loop() {
       delay(1000);
     }
   }
+
+  speedController.updateSpeed(); // Aktualisiere Geschwindigkeit
 
   /*
   // setze odrive Watchdog-Timer zurück, wenn dieser nicht alle 0.8 Sekunden zurückgesetzt wird, gehen die Motoren in Notaus (Falls es ein Verbindungsabbruch gibt)

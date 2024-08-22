@@ -12,7 +12,7 @@ struct Settings {
     float velocityIntegratorGain;
 };
 
-class ConfigManager {
+class EepromSettings {
   public:
     void setup(){
       EEPROM.begin(512); // Initialisiere EEPROM mit 512 Bytes

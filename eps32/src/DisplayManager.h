@@ -44,12 +44,12 @@ class DisplayManager {
       display.display(); // Zeige die Änderungen auf dem Display an
     }
 
-    void updateMenu(bool buttonOK, bool buttonUP, bool buttonDOWN, SpeedController& speedController, ConfigManager& configManager, ODriveUART& odrive) {
+    void updateMenu(bool buttonOK, bool buttonUP, bool buttonDOWN, SpeedController& speedController, ODriveUART& odrive) {
       static bool lastButtonOK = false;
       static bool lastButtonUP = false;
       static bool lastButtonDOWN = false;
 
-      if (buttonOK && !lastButtonOK) {
+      if (buttonOK && !lastButtonOK && DEBUG_MODE_AKIV) {
         switch (currentMenuState) {
           case MENU_MAIN:
             currentMenuState = MENU_DEBUG;
@@ -75,7 +75,7 @@ class DisplayManager {
         }
       }
 
-      if (buttonUP && !lastButtonUP) {
+      if (buttonUP && !lastButtonUP && DEBUG_MODE_AKIV) {
         switch (currentMenuState) {
           case MENU_ADJUST_VEL_GAIN:
             speedController.setVelocityGain(speedController.getVelocityGain() + 0.01);
@@ -94,12 +94,12 @@ class DisplayManager {
               }
             break;
           case MENU_SAVE_SETTINGS:
-            saveSettings(speedController, configManager);
+            saveSettings(speedController);
             break;
         }
       }
 
-      if (buttonDOWN && !lastButtonDOWN) {
+      if (buttonDOWN && !lastButtonDOWN && DEBUG_MODE_AKIV) {
         switch (currentMenuState) {
           case MENU_ADJUST_VEL_GAIN:
             speedController.setVelocityGain(speedController.getVelocityGain() - 0.01);
@@ -206,13 +206,12 @@ class DisplayManager {
     MenuState currentMenuState; 
 
     // Speichere die aktuellen Einstellungen in den EEPROM
-    void saveSettings(SpeedController& speedController, ConfigManager& configManager) {
+    void saveSettings(SpeedController& speedController) {
       Settings settings;
       settings.speedMode = speedController.getSpeedMode();
       settings.controlMode = speedController.getControlMode();
       settings.velocityGain = speedController.getVelocityGain();
       settings.velocityIntegratorGain = speedController.getVelocityIntegratorGain();
-      configManager.saveSettings(settings); 
     }
 
     String getControlModeString(ControlMode mode) {
