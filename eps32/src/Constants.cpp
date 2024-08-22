@@ -1,7 +1,7 @@
-#ifndef Constants_h
-#define Constants_h
+#ifndef Constants_cpp
+#define Constants_cpp
 
-
+#include <Arduino.h>
 /*
 ==========================================
 ==     SETTINGS - HARDWARE - ESP32/BATT      ==
@@ -60,11 +60,10 @@ struct ODriveErrors {
 };
 
 
-//Kontroll Modi
+//Mögliche Kontroll Modi
 enum ControlMode { 
-    VELOCITY_CONTROL, // Geschwindigkeitssteuerung
-    TORQUE_CONTROL  // Drehmomentsteuerung
-    //VOLTAGE_CONTROL 
+    VELOCITY_CONTROL, // Geschwindigkeitssteuerung --> Gibt mit Pedalen eine Zielgeschindigkeit vor, es wird bis dahin beschleunigt
+    TORQUE_CONTROL  // Drehmomentsteuerung --> Gibt mit den Pedalen ein Zieldrehmoment vor, Drehmoment wird erhöht, bis Ziel erreicht wird --> Es ist eher wie ein echtes Auto.
 };
 
 // Definiere die verfügbaren Speedmodi als enum
@@ -75,6 +74,7 @@ enum SpeedMode {
   MODE_4 = 3,
   MODE_R = 4
 };
+
 
 // Mögliche-Menüzustände
 enum MenuState {
@@ -88,6 +88,9 @@ enum MenuState {
     MENU_ADJUST_CONTROL_MODE,
     MENU_SAVE_SETTINGS
 };
+
+// Standard Menü nach Start
+MenuState STANDARD_MENUE = MENU_MAIN; // standard Menüzustand
 
 // Dauerhaft gespeicherte Einstellungen (werden nach neustart erhaten)
 struct Settings {

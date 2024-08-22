@@ -3,11 +3,11 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include "Constants.h"
+#include "Constants.cpp"
 #include "Bootlogo.h"
 #include "ODriveUART.h"
 #include "SpeedController.h"
-#include "ConfigManager.h"
+#include "EEPROMSettings.h"
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
@@ -27,9 +27,11 @@ class DisplayManager {
       display.drawBitmap( 0, 0, hoverLogo, SCREEN_WIDTH, SCREEN_HEIGHT, WHITE); // Lade Bootlogo
       display.display();
       delay(2000);
+
+      setMenuState(STANDARD_MENUE); 
     }
 
-    // setze Menüzustand (z.B. bei Fehler)
+    // setze aktuellen Menüzustand (z.B. bei Fehler)
     void setMenuState(MenuState state) {
       currentMenuState = state;
     }
@@ -202,7 +204,7 @@ class DisplayManager {
     float bat_voltage;
     float request_kmh;
     float current_kmh;
-    MenuState currentMenuState = MENU_MAIN; // setze Standardmenüzustand
+    MenuState currentMenuState; 
 
     // Speichere die aktuellen Einstellungen in den EEPROM
     void saveSettings(SpeedController& speedController, ConfigManager& configManager) {
@@ -211,7 +213,7 @@ class DisplayManager {
       settings.controlMode = speedController.getControlMode();
       settings.velocityGain = speedController.getVelocityGain();
       settings.velocityIntegratorGain = speedController.getVelocityIntegratorGain();
-      configManager.saveSettings(settings);
+      configManager.saveSettings(settings); 
     }
 
     String getControlModeString(ControlMode mode) {

@@ -1,23 +1,18 @@
+#include "Config.h"
 #include "DisplayManager.h"
 #include "SpeedController.h"
-#include "Constants.h"
-#include "ConfigManager.h"
+#include "EEPROMSettings.h"
 
 #include "ODriveUART.h"
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 
-String speedMode; // Gesetzter Geschwindigkeitesmodus -> Wert wird beim Einschalten/Booten gesetzt (setSpeedMode())
-int maxKmh; // Gesetzte Maximalgeschwindigkeit in Km/h -> Wert wird beim Einschalten/Booten gesetzt (setSpeedMode())
-bool idleMode = false; // ob sich odive im idlemode befindet 
 
 DisplayManager displayManager; //initialisiere OLED-Display
 SpeedController speedController; //initialisiere Geschwinigkeitskontrolle
 ConfigManager configManager; // initialisiere Manager für dauerhaft gespeicherte Einstellungen
 HardwareSerial odrive_serial(ODRIVE_UART); // Verwendeter UART im ESP32
 ODriveUART odrive(odrive_serial);
-
-MenuState currentMenuState = MENU_MAIN; // standard Menüzustand
 
 std::vector<ODriveErrors> odrive_errors; // Fehlerliste
 int errorCount; // Anzahl der Fehler
@@ -33,10 +28,8 @@ void setup() {
     Serial.begin(115200); // starte seriellen Monitor zu ESP32
     odrive_serial.begin(ODRIVE_BAUD_RATE, SERIAL_8N1, ODRIVE_RX, ODRIVE_TX); // starte serielle Verbindung zum odrive
 
-    // Initialisiere Display
-    displayManager.setup();
-
-    configManager.setup();
+    displayManager.setup(); // Initialisiere Display
+    configManager.setup(); // Initialisiere EPROM Speicher
 
     // Initialisiere HardwareButtons
     pinMode(BUTTON_UP, INPUT_PULLUP); 
@@ -56,6 +49,7 @@ void setup() {
     speedController.setVelocityIntegratorGain(settings.velocityIntegratorGain);
     //speedController.saveODriveConfig();
 
+    //
 
   }   
 

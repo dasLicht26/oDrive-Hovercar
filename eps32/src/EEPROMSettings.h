@@ -1,9 +1,11 @@
-#ifndef ConfigManager_h
-#define ConfigManager_h
+#ifndef EEPROMSettings_h
+#define EEPROMSettings_h
 
 #include <EEPROM.h>
 #include "SpeedController.h"
-#include "Constants.h"
+#include "config.h"
+
+
 
 class ConfigManager {
   public:

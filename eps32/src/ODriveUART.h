@@ -3,8 +3,7 @@
 #define ODriveUART_h
 
 #include "Arduino.h"
-#include "ODriveEnums.h"
-#include "Constants.h"
+#include "Config.h"
 
 struct ODriveFeedback {
     float pos;

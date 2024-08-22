@@ -8,10 +8,6 @@
 static const int kMotorNumber = 0;
 static const int timeout = 1000;
 
-// Print with stream operator
-template<class T> inline Print& operator <<(Print &obj,     T arg) { obj.print(arg);    return obj; }
-template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(arg, 4); return obj; }
-
 ODriveUART::ODriveUART(Stream& serial)
     : serial_(serial) {}
 
