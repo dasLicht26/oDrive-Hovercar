@@ -131,7 +131,7 @@ public:
 private:
     String readLine(unsigned long timeout_ms = 30);
 
-    Stream& serial_;
+    Stream& odrive_serial_;
 };
 
 #endif //ODriveUART_h

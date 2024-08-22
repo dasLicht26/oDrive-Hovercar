@@ -9,55 +9,52 @@
 static const int kMotorNumber = 0;
 static const int timeout = 1000;
 
-// Print with stream operator
-template<class T> inline Print& operator <<(Print &obj,     T arg) { obj.print(arg);    return obj; }
-template<>        inline Print& operator <<(Print &obj, float arg) { obj.print(arg, 4); return obj; }
 
 ODriveUART::ODriveUART(Stream& serial)
-    : serial_(serial) {}
+    : odrive_serial_(serial) {}
 
 void ODriveUART::clearErrors() {
-    serial_ << "sc\n";
+    odrive_serial_.print("sc\n");
 }
 
 void ODriveUART::saveConfig() {
-    serial_ << "ss\n";
+    odrive_serial_.print("ss\n");
 }
 
 void ODriveUART::reboot() {
-    serial_ << "sr\n";
+    odrive_serial_.print("sr\n");
 }
 
 void ODriveUART::setVelocity(float velocity) {
-    serial_ << "v " << 0  << " " << velocity * -1 <<  "\n";
-    serial_ << "v " << 1  << " " << velocity << "\n";
+    odrive_serial_.print(String("v ") + 0  + " " + velocity * -1 +  "\n");
+    odrive_serial_.print(String("v ") + 1  + " " + velocity + "\n");
 }
 
 void ODriveUART::setVelocity(float velocity, float torque) {
-    serial_ << "v " << 0  << " " << velocity * -1 <<" " << torque * -1<< "\n";
-    serial_ << "v " << 1  << " " << velocity << " " << torque << "\n";
+    odrive_serial_.print(String("v ") + 0  + " " + velocity * -1 +" " + torque * -1+ "\n");
+    odrive_serial_.print(String("v ") + 1  + " " + velocity + " " + torque + "\n");
 }
 
 void ODriveUART::setTorque(float torque) {
-    serial_ << "c " << 0 << " " << torque * -1 << "\n";
-    serial_ << "c " << 1 << " " << torque << "\n";
+    odrive_serial_.print(String("c ") + 0 + " " + torque * -1 + "\n");
+    odrive_serial_.print(String("c ") + 1 + " " + torque + "\n");
 }
 
 void ODriveUART::resetWatchdog(int axis) {
-    serial_ << "u " << axis << "\n";
+    odrive_serial_.print(String("u ") + axis + "\n");
 }
 
 void ODriveUART::trapezoidalMove(float position, int axis) {
-    serial_ << "t " << axis << " " << position << "\n";
+    odrive_serial_.print(String("t ") + axis + " " + position + "\n");
 }
 
 ODriveFeedback ODriveUART::getFeedback(int axis) {
     // Flush RX
-    while (serial_.available()) {
-        serial_.read();
+    while (odrive_serial_.available()) {
+        odrive_serial_.read();
     }
 
-    serial_ << "f " << axis << "\n";
+    odrive_serial_.print(String("f ") + axis + "\n");
 
     String response = readLine(timeout);
 
@@ -78,7 +75,7 @@ ODriveFeedback ODriveUART::getFeedback(int axis) {
 }
 
 String ODriveUART::getParameterAsString(const String& path) {
-    serial_ << "r " << path << "\n";
+    odrive_serial_.print(String("r ") + path + "\n");
     String response = readLine(timeout); // Setze ein Timeout 
 
     // Überprüfe, ob eine Antwort empfangen wurde
@@ -90,11 +87,11 @@ String ODriveUART::getParameterAsString(const String& path) {
 
 
 void ODriveUART::setParameter(const String& path, const String& value) {
-    serial_ << "w " << path << " " << value << "\n";
+    odrive_serial_.print(String("w ") + path + " " + value + "\n");
 }
 
 void ODriveUART::setParameter(const String& path, float value) {
-    serial_ << "w " << path << " " << value << "\n";
+    odrive_serial_.print(String("w ") + path + " " + value + "\n");
 }
 
 void ODriveUART::setState(ODriveAxisState requested_state) {
@@ -139,14 +136,14 @@ String ODriveUART::readLine(unsigned long timeout_ms) {
     delay(10);
 
     for (;;) {
-        while (!serial_.available()) {
+        while (!odrive_serial_.available()) {
             if (millis() - timeout_start >= timeout_ms) {
                 Serial.println("Timeout");
                 return str;
             }
             delay(3);
         }
-        char c = serial_.read();
+        char c = odrive_serial_.read();
         if (c == '\n')
             break;
         str += c;

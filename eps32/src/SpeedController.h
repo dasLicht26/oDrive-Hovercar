@@ -236,14 +236,14 @@ class SpeedController {
     }
 
     float convertRPStoKMh(float RPS) {
-        float radiusM = RADIUSCM / 100.0; // Konvertiere cm in m
+        float radiusM = RADIUS_WHEEL_CM / 100.0; // Konvertiere cm in m
         float circumferenceM  = M_PI * radiusM; // Berechne den Umfang in Metern
         float speedMS = circumferenceM * RPS; // m/s
         return speedMS * 3.6 *-1; // Konvertiere m/s in km/h
     }
 
     float convertKMHtoRPS(float KMH) {
-        float radiusM = RADIUSCM / 100.0; // Konvertiere cm in m
+        float radiusM = RADIUS_WHEEL_CM / 100.0; // Konvertiere cm in m
         float circumferenceM = M_PI * radiusM; // Berechne den Umfang in Metern
         float speedMS = KMH / 3.6; // Konvertiere km/h in m/s
         return speedMS / circumferenceM; // Berechne RPS
