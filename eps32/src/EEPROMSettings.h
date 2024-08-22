@@ -5,7 +5,12 @@
 #include "SpeedController.h"
 #include "config.h"
 
-
+struct Settings {
+    SpeedMode speedMode;
+    ControlMode controlMode;
+    float velocityGain;
+    float velocityIntegratorGain;
+};
 
 class ConfigManager {
   public:

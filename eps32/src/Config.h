@@ -1,6 +1,7 @@
-#ifndef Config.h
-#define Config.h nmnmn  
+#ifndef Config_h
+#define Config_h 
 
+#include <Arduino.h>
 /*
 ==========================================
 ==     OPTIONS - HARDWARE - ESP32      ==
