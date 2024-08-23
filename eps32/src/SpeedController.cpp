@@ -11,10 +11,22 @@ float SpeedController::getVBusCurrent() {
 
 // Geschwindigkeit aktualisieren
 void SpeedController::updateSpeed(){
-    float odrive_kmh = getCurrentKMH();
-    float request_kmh = getRequestedKMH();
-    idleControl(odrive_kmh, request_kmh);
-    setTargetVelocity(convertKMHtoRPS(request_kmh));
+
+    updateDirectionMode();
+
+
+    switch(current_control_mode){
+        case VELOCITY_CONTROL: {
+            float requestedRPS = getRequestedRPS();
+            setTargetVelocity(requestedRPS);
+            break;
+        }
+        case TORQUE_CONTROL: {
+            float requestedNm = getRequestedNm();
+            odrive->setTorque(requestedNm);
+            break;
+        }
+    }
 }
 
 // ODrive initialisieren/setup -> Ändert die Konfig dauerhaft
@@ -49,15 +61,27 @@ void SpeedController::saveODriveConfig() {
 }
 
 // Alle Bewegungen stoppen
-void SpeedController::stopAll() {
+void SpeedController::stopMotorControl() {
     if (odrive != nullptr) {
         odrive->setState(AXIS_STATE_IDLE, 0);
         odrive->setState(AXIS_STATE_IDLE, 1);
     }
 }
 
+void SpeedController::stopCar() {
+    if (odrive != nullptr) {
+        // Bremse bis Stillstand
+        odrive->setVelocity(0.0);
+        // Warte bis Stillstand erreicht
+        while (getCurrentKMH() != 0) {
+            delay(30);
+        }
+    }
+}
+
+
 void SpeedController::hardwareStartUpCheck(){
-    // Batterie check
+    // Check ob ODrive verbunden ist, dazu wird eine einfache Abfrage gesendet
     while(odrive->getParameterAsFloat("vbus_voltage") == 0.0){
         delay(30);
     }
@@ -91,25 +115,10 @@ void SpeedController::hardwareStartUpCheck(){
 
 }
 
-
-// Idle-Kontrolle
-void SpeedController::idleControl(float odrive_kmh, float request_kmh) {
+void SpeedController::startMotorControl() {
     if (odrive != nullptr) {
-        request_kmh = abs(request_kmh);
-        if (request_kmh == 0 && odrive_kmh == 0) {
-            if (odrive->getState(0) != AXIS_STATE_IDLE) {
-                odrive->setState(AXIS_STATE_IDLE, 0);
-                odrive->setState(AXIS_STATE_IDLE, 1);
-                delay(30);
-            }
-        }
-        else if(request_kmh >= 0.2) {
-            if (odrive->getState(0) != AXIS_STATE_CLOSED_LOOP_CONTROL) {
-                odrive->setState(AXIS_STATE_CLOSED_LOOP_CONTROL, 0);
-                odrive->setState(AXIS_STATE_CLOSED_LOOP_CONTROL, 1);
-                delay(30);
-            }
-        }
+        odrive->setState(AXIS_STATE_CLOSED_LOOP_CONTROL, 0);
+        odrive->setState(AXIS_STATE_CLOSED_LOOP_CONTROL, 1);
     }
 }
 
@@ -167,10 +176,18 @@ float SpeedController::getRequestedRPS() {
     return toReturn/100; 
 }
 
-// gibt die aktuelle Geschwindigkeit in km/h zurück
-float SpeedController::getCurrentKMH() {
-    return convertRPStoKMh(getCurrentVelocity());
+void SpeedController::updateDirectionMode() {
+    if (current_speed_mode != MODE_R){
+        temp_speed_mode = current_speed_mode;
+    }
+    if (getRequestedRPS() < 0 && current_speed_mode != MODE_R && getCurrentKMH() <= 0){
+        setSpeedMode(MODE_R);
+    } else if (getRequestedRPS() > 0 && current_speed_mode == MODE_R && getCurrentKMH() == 0){
+        setSpeedMode(temp_speed_mode);
+    }
 }
+
+
 
 // gibt das aktuelle angeforderte Drehmoment in Nm zurück
 float SpeedController::getRequestedNm() {

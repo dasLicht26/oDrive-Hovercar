@@ -29,8 +29,17 @@ class SpeedController {
     // Setze den p-PID Gain
     void setVelocityGain(float gain) { velocity_gain = gain; }
 
+    // Gibt die aktuelle Batteriespannung zurück
+    float getBatteryVoltage() { return odrive->getParameterAsFloat("vbus_voltage"); }
+
+    // Gibt den Batterieprozentsatz zurück
+    int getBatteryPercentage() { return map(getBatteryVoltage(), V_BAT_MIN, V_BAT_MAX, 0, 100); }
+
+    // Gibt an ob Spannungs Untergrenze erreicht ist
+    bool isBatteryLow() { return getBatteryVoltage() < V_BAT_MIN; }
+
     // Gibt den aktuellen p-PID Gain zurück
-    float getVelocityGain() { return velocity_gain;}
+    float getVelocityGain() { return velocity_gain; }
 
     // Setze den Integrator Gain
     void setVelocityIntegratorGain(float gain) { velocity_integrator_gain = gain;}
@@ -50,14 +59,20 @@ class SpeedController {
     // ODrive initialisieren/setup -> Ändert die oDrive Konfig dauerhaft
     void saveODriveConfig();
     
-    // Alle Motoren stoppen --> Vollbremsung auf 0
-    void stopAll();
+    // Motorsteuerung deaktivieren -> Setzt den Motor in den Idle-Modus
+    void stopMotorControl();
+
+    // Motorsteuerung aktivieren -> Setzt den Motor in den Closed-Loop-Modus
+    void startMotorControl();
+
+    // setzte automatisch Vorwärts/Rückwerts Modus (MODE_R wird nur bei Stillstand aktiviert)
+    void updateDirectionMode();
+
+    // Bringe das Auto zum Stillstand -> Bremse bis Stillstand, Alle Eingaben (Gas/Bremse) sind bis absoluten Stillstand deaktiviert.
+    void stopCar();
 
     // Starte Hardware und überprüfe ob alles korrekt ist (z.B. ODrive verbunden, Batterie geladen, Leerer Fehlerspeicher, etc)
     void hardwareStartUpCheck();
-    
-    // Idle-Kontrolle
-    void idleControl(float odrive_kmh, float request_kmh);
 
     // Fehlerkontrolle, liefert eine Listen/struct mit Fehlern zurück
     std::vector<ODriveErrors> getErrors();
@@ -75,11 +90,12 @@ class SpeedController {
     float getRequestedKMH(){ return convertRPStoKMh(getRequestedRPS()); }
 
     // gibt die aktuelle Geschwindigkeit in km/h zurück
-    float getCurrentKMH();
+    float getCurrentKMH(){return convertRPStoKMh(getCurrentVelocity()); }
 
     // gibt das aktuelle angeforderte Drehmoment in Nm zurück
     float getRequestedNm();
 
+    // gibt das aktuelle Drehmoment in Nm zurück
     float getCurrentNM();
 
     // Konvertiere RPS in km/h
@@ -93,6 +109,7 @@ class SpeedController {
 
   private:
     SpeedMode current_speed_mode; // Aktuell ausgewählter Geschwindigkeitsmodus
+    SpeedMode temp_speed_mode; // Temporärer Geschwindigkeitsmodus -> Wird für Rückwertsgang benötigt
     ControlMode current_control_mode; // Aktuell ausgewählter SteuerungsModus
     ODriveUART* odrive; // Zeiger auf die ODrive Instanz
     float velocity_gain; // p-PID

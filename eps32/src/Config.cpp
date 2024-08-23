@@ -70,3 +70,11 @@ const SpeedModeParameter modiParameter[] = {
   {"R", -4.0, -5.0},
 };
 
+
+// Menüpunkte für das Display
+const MenuItem menueItems[]= {
+    {"Vel Gain", 0.0, 0.1, true},
+    {"Vel Int Gain", 0.0, 0.05, true},
+    {"Control Mode", 0.0, 1.0, true},
+    {"Save Settings", 0.0, 0.0, false}
+};

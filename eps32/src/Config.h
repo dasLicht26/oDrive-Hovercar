@@ -105,14 +105,17 @@ enum MenuState {
     ERROR_ODRIVE,       // oDrive hat Fehler festgestellt
     MENU_MAIN,          // Hauptmenue -> Standardansicht
     MENU_DEBUG,         // Hidden -> Debug Ausgabe 
-    MENU_ADJUST_MAIN, 
-    MENU_ADJUST_VEL_GAIN,
-    MENU_ADJUST_VEL_INTEGRATOR_GAIN,
-    MENU_ADJUST_CONTROL_MODE,
-    MENU_SAVE_SETTINGS  // Speichern der Einstellungen
+    MENU_SETTINGS, 
 };
-
 extern MenuState STANDARD_MENUE;
+
+struct MenuItem {
+    String name;
+    float currentValue;
+    float step;
+    bool isAdjustable;
+};
+extern const MenuItem menueItems[];
 
 extern bool DEBUG_MODE_AKIV;
 
