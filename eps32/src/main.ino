@@ -47,8 +47,9 @@ void setup() {
     //}
 }  
 
+
 void loop() {
-  sleep(1000);
+  sleep(500);
 
   // Knopfstatus lesen
   //button_ok = !digitalRead(BUTTON_OK);
