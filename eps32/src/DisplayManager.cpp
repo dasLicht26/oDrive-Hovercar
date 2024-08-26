@@ -1,14 +1,5 @@
 #include "DisplayManager.h"
 
-DisplayManager::DisplayManager(Adafruit_SSD1306& display)
-    : display(display), menu_settings_state(0){
-    Wire.begin(OLED_SDA, OLED_SCL); // Initialisiere I2C mit SDA und SCL Pins
-    Wire.setClock(50000); // Setzt die Taktrate auf 50 kHz (standard ist 100kHz) für stabielere Bilder
-    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-            Serial.println(F("SSD1306 allocation failed"));
-            for (;;);
-        }
-    }
 
 void DisplayManager::displayBootlogo() {
     display.clearDisplay();

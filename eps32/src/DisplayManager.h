@@ -10,11 +10,17 @@
 #include <Arduino.h>
 #include <vector>
 
-
-
 class DisplayManager {
 public:
-    DisplayManager(Adafruit_SSD1306& display);
+    void setup(){
+        display = Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET); //initialisiere OLED-Display
+        Wire.begin(OLED_SDA, OLED_SCL); // Initialisiere I2C mit SDA und SCL Pins
+        Wire.setClock(50000); // Setzt die Taktrate auf 50 kHz (standard ist 100kHz) für stabielere Bilder
+        if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+                Serial.println(F("SSD1306 allocation failed"));
+                for (;;);
+            }
+    }
 
     // zeige Bootlogo
     void displayBootlogo();
@@ -33,7 +39,7 @@ public:
 
 private:
     SpeedController* speedController;   // Zeiger auf SpeedController
-    Adafruit_SSD1306& display;          // Zeiger auf Display-Objekt
+    Adafruit_SSD1306 display;          // Zeiger auf Display-Objekt
     MenuState current_menu_state;         // Aktueller Menüzustand
     SpeedModeParameter mode_parameter;  // Parameter des aktuellen Geschwindigkeitsmodus
     std::vector<MenuItem> menu_settings_items;    // verfügbare Menüpunkte der Einstellungen
