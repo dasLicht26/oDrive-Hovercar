@@ -111,11 +111,12 @@ extern MenuState STANDARD_MENUE;
 
 struct MenuItem {
     String name;
-    float currentValue;
+    float current_value;
     float step;
-    bool isAdjustable;
+    bool is_adjustable;
+    bool is_active;
 };
-extern const MenuItem menueItems[];
+extern const MenuItem menu_settings_items[];
 
 extern bool DEBUG_MODE_AKIV;
 

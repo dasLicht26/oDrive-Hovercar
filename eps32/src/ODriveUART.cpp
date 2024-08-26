@@ -127,6 +127,8 @@ ODriveAxisState ODriveUART::getState(int axis) {
         return (ODriveAxisState)getParameterAsInt("axis0.current_state");
     } else if (axis == 1) {
         return (ODriveAxisState)getParameterAsInt("axis1.current_state");
+    } else {
+        return ODriveAxisState::AXIS_STATE_UNDEFINED;
     }
 }
 

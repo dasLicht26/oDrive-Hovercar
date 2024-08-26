@@ -72,9 +72,9 @@ const SpeedModeParameter modiParameter[] = {
 
 
 // Menüpunkte für das Display
-const MenuItem menueItems[]= {
-    {"Vel Gain", 0.0, 0.1, true},
-    {"Vel Int Gain", 0.0, 0.05, true},
-    {"Control Mode", 0.0, 1.0, true},
-    {"Save Settings", 0.0, 0.0, false}
+const MenuItem menu_settings_items[]= {
+    {"Vel Gain", 0.0, 0.1, true, false},
+    {"Vel Int Gain", 0.0, 0.05, true, false},
+    {"Control Mode", 0.0, 1.0, true, false},
+    {"Save Settings", 0.0, 0.0, false, false}
 };

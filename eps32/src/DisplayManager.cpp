@@ -1,7 +1,7 @@
 #include "DisplayManager.h"
 
 DisplayManager::DisplayManager(Adafruit_SSD1306& display)
-    : display(display), selectedItem(0), in_edit_mode(false) {
+    : display(display), menu_settings_state(0){
     Wire.begin(OLED_SDA, OLED_SCL); // Initialisiere I2C mit SDA und SCL Pins
     Wire.setClock(50000); // Setzt die Taktrate auf 50 kHz (standard ist 100kHz) für stabielere Bilder
     if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
@@ -14,17 +14,107 @@ void DisplayManager::displayBootlogo() {
     display.clearDisplay();
     display.drawBitmap( 0, 0, hoverLogo, SCREEN_WIDTH, SCREEN_HEIGHT, WHITE); // Lade Bootlogo
     display.display();
+    delay(2000); // Zeige Bootlogo für 2 Sekunden
 }
 
 // setze aktuellen Menüzustand (z.B. bei Fehler)
 void DisplayManager::setMenuState(MenuState state) {
-    currentMenuState = state;
+    current_menu_state = state;
 }
 
-void DisplayManager::handleInput(char input) {
-    static bool lastButtonOK = false;
-    static bool lastButtonUP = false;
-    static bool lastButtonDOWN = false;
+void DisplayManager::handleInput(bool button_ok, bool button_up, bool button_down) {
+
+    if (button_ok && !button_up && !button_down) {
+        button_pressend = 'o';
+    } else if (!button_ok && button_up && !button_down) {
+        button_pressend = '+';
+    } else if (!button_ok && !button_up && button_down) {
+        button_pressend = '-';
+    } else {
+        button_pressend = 'n';
+    }
+
+    if (button_pressend == last_button) {
+        return;
+    } else {
+        last_button = button_pressend;
+    }
+    
+
+    updateMenuState();
+    updateMenuItem();
+}
+
+void DisplayManager::updateMenuState() {
+    if (settings_active) {
+        return;
+    }
+
+    if (button_pressend == '+') {
+        if (current_menu_state == MENU_MAIN) {
+            current_menu_state = MENU_DEBUG;
+        } else if (current_menu_state == MENU_DEBUG) {
+            current_menu_state = MENU_SETTINGS;
+        } else if (current_menu_state == MENU_SETTINGS) {
+            current_menu_state = MENU_MAIN;
+        }
+    } else if (button_pressend == '-') {
+        if (current_menu_state == MENU_MAIN) {
+            current_menu_state = MENU_SETTINGS;
+        } else if (current_menu_state == MENU_DEBUG) {
+            current_menu_state = MENU_MAIN;
+        } else if (current_menu_state == MENU_SETTINGS) {
+            current_menu_state = MENU_DEBUG;
+        }
+    } else if (button_pressend == 'o') {
+        if (current_menu_state == MENU_SETTINGS) {
+            settings_active = true;
+            menu_settings_state = 0;
+        }
+    }
+}
+
+void DisplayManager::updateMenuItem() {
+    if (current_menu_state == MENU_SETTINGS && !menu_settings_items[menu_settings_state].is_active) {
+        if (button_pressend == '+') {
+            menu_settings_state++;
+            if (menu_settings_state >= menu_settings_items.size()) {
+                menu_settings_state = 0;
+            }
+        } else if (button_pressend == '-') {
+            menu_settings_state--;
+            if (menu_settings_state < 0) {
+                menu_settings_state = menu_settings_items.size() - 1;
+            }
+        } else if (button_pressend == 'o') {
+            if (menu_settings_items[menu_settings_state].is_active) {
+            menu_settings_items[menu_settings_state].is_active = false;
+            } else {
+            menu_settings_items[menu_settings_state].is_active = true;
+            }
+        }
+    }
+}
+
+void DisplayManager::displaySettingsMenu() {
+
+
+    for (int i = 0; i < menu_settings_items.size(); i++) {
+        if (i == menu_settings_state) {
+            display.print(">");
+        }
+        if (menu_settings_items[i].is_active) {
+            display.setTextColor(SSD1306_WHITE);
+        } else {
+            display.setTextColor(SSD1306_BLACK);
+        }
+        display.print(menu_settings_items[i].name);
+        display.print(": ");
+        display.println(menu_settings_items[i].current_value);
+    }
+
+    display.display();
+
 }
 
 void DisplayManager::updateDisplay() {
@@ -46,13 +136,16 @@ void DisplayManager::updateDisplay() {
     requested_kmh = speedController->getRequestedKMH();
     current_kmh = speedController->getCurrentKMH();
 
-    switch (currentMenuState) {
+    switch (current_menu_state) {
     case MENU_MAIN:
         displayDashboard();
         break;
     case MENU_DEBUG:
         displayDebugMenu();
         break;  
+    case MENU_SETTINGS:
+        displaySettingsMenu();
+        break;
     case ERROR_LOW_VOLTAGE:
         displayVBatLowError();
         break;
