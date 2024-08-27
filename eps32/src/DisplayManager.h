@@ -46,7 +46,7 @@ private:
     //std::vector<MenuItem> STANDARD_SETTING_ITEMS;    // verfügbare Menüpunkte der Einstellungen
     std::vector<ODriveErrors> errors;   // ausgelesene Fehlerliste aus oDrive
     char last_button;            // zuletzt gedrückter Knopf (o, +, -) oder n für nichts, um Doppelklicks zu vermeiden
-    char button_pressend;        // aktuell gedrückter Knopf
+    char button_pressed;        // aktuell gedrückter Knopf
     int menu_settings_state;            // aktuell ausgewählter Menüpunkt in Settings
     int menu_state;                     // aktuell ausgewählter Menüpunkt
     int bat_percent;                    // Batterieprozentsatz      

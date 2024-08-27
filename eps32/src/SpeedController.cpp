@@ -11,10 +11,7 @@ float SpeedController::getVBusCurrent() {
 
 // Geschwindigkeit aktualisieren
 void SpeedController::updateSpeed(){
-
     updateDirectionMode();
-
-
     switch(current_control_mode){
         case VELOCITY_CONTROL: {
             float requestedRPS = getRequestedRPS();

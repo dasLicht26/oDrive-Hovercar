@@ -17,37 +17,28 @@ void DisplayManager::setMenuState(MenuState state) {
 void DisplayManager::handleInput(bool button_ok, bool button_up, bool button_down) {
 
     if (button_ok && !button_up && !button_down) {
-        button_pressend = 'o';
+        button_pressed = 'o';
     } else if (!button_ok && button_up && !button_down) {
-        button_pressend = '+';
+        button_pressed = '+';
     } else if (!button_ok && !button_up && button_down) {
-        button_pressend = '-';
+        button_pressed = '-';
     } else {
-        button_pressend = 'n';
+        button_pressed = 'n';
     }
 
-    if (button_pressend == last_button) {
+    if (button_pressed == last_button) {
         return;
     } else {
-        last_button = button_pressend;
+        last_button = button_pressed;
     }
     
-    if (last_button = 'n'){
+    if (button_pressed == 'n') {
         return;
-    } 
-
-    if (LOCAL_DEBUG){
-        delay(500);
-        display.clearDisplay();
-        display.setTextSize(4);
-        display.setTextColor(SSD1306_WHITE);
-        display.setCursor(0, 0);
-        display.println(button_pressend);
-        display.println(current_menu_state);
-        display.display();
     }
+
+    updateMenuItem();
     updateMenuState();
-    //updateMenuItem();
+    
 
 }
 
@@ -56,7 +47,7 @@ void DisplayManager::updateMenuState() {
         return;
     }
 
-    if (button_pressend == '+') {
+    if (button_pressed == '+') {
         if (current_menu_state == MENU_MAIN) {
             current_menu_state = MENU_DEBUG;
         } else if (current_menu_state == MENU_DEBUG) {
@@ -64,7 +55,7 @@ void DisplayManager::updateMenuState() {
         } else if (current_menu_state == MENU_SETTINGS) {
             current_menu_state = MENU_MAIN;
         }
-    } else if (button_pressend == '-') {
+    } else if (button_pressed == '-') {
         if (current_menu_state == MENU_MAIN) {
             current_menu_state = MENU_SETTINGS;
         } else if (current_menu_state == MENU_DEBUG) {
@@ -72,7 +63,7 @@ void DisplayManager::updateMenuState() {
         } else if (current_menu_state == MENU_SETTINGS) {
             current_menu_state = MENU_DEBUG;
         }
-    } else if (button_pressend == 'o') {
+    } else if (button_pressed == 'o') {
         if (current_menu_state == MENU_SETTINGS) {
             settings_active = true;
             menu_settings_state = 0;
@@ -81,46 +72,104 @@ void DisplayManager::updateMenuState() {
 }
 
 void DisplayManager::updateMenuItem() {
+    if(!settings_active) {
+        return;
+    }
+
     if (current_menu_state == MENU_SETTINGS && !STANDARD_SETTING_ITEMS[menu_settings_state].is_active) {
-        if (button_pressend == '+') {
+        if (button_pressed == '-') {
             menu_settings_state++;
             if (menu_settings_state >= STANDARD_SETTING_ITEMS_SIZE) {
                 menu_settings_state = 0;
             }
-        } else if (button_pressend == '-') {
+        } else if (button_pressed == '+') {
             menu_settings_state--;
             if (menu_settings_state < 0) {
                 menu_settings_state = STANDARD_SETTING_ITEMS_SIZE - 1;
             }
-        } else if (button_pressend == 'o') {
-            if (STANDARD_SETTING_ITEMS[menu_settings_state].is_active) {
-            STANDARD_SETTING_ITEMS[menu_settings_state].is_active = false;
-            } else {
-            STANDARD_SETTING_ITEMS[menu_settings_state].is_active = true;
-            }
         }
+    }
+    if (button_pressed == 'o') {
+        if (STANDARD_SETTING_ITEMS[menu_settings_state].is_active) {
+        STANDARD_SETTING_ITEMS[menu_settings_state].is_active = false;
+        } else {
+        STANDARD_SETTING_ITEMS[menu_settings_state].is_active = true;
+        }
+
+        if (!STANDARD_SETTING_ITEMS[menu_settings_state].is_adjustable) {
+            settings_active = false;
+            STANDARD_SETTING_ITEMS[menu_settings_state].is_active = false;
+            button_pressed = 'n';
+            if (STANDARD_SETTING_ITEMS[menu_settings_state].name == "Save Settings") {
+                current_menu_state = MENU_MAIN;
+
+                /* ToDo: Speichere die Einstellungen in oDrive */
+            } else {
+                current_menu_state = MENU_SETTINGS;
+                /* ToDo: Verwerfe die Einstellungen */
+
+            }
+        }   
     }
 }
 
 void DisplayManager::displaySettingsMenu() {
 
+    int16_t x1, y1;
+    uint16_t w, h;
 
     for (int i = 0; i < STANDARD_SETTING_ITEMS_SIZE; i++) {
-        if (i == menu_settings_state) {
-            display.print(">");
+        // Cursor an den Anfang der Zeile setzen
+        display.setCursor(0, i * 8);  // Annahme: Jede Zeile ist 8 Pixel hoch, passe dies entsprechend an
+
+        // Wenn Settings-Menü aktiv ist, dann zeige ">" an
+        if (i == menu_settings_state && settings_active) {
+            if(STANDARD_SETTING_ITEMS[i].is_active) {
+                display.print(">>");
+            } else {
+                display.print("> ");
+            }
+        } else {
+            display.print("  ");
         }
+
+        // Anpassen wenn Menüpunkt aktiv ist
         if (STANDARD_SETTING_ITEMS[i].is_active) {
             display.setTextColor(SSD1306_WHITE);
         } else {
-            display.setTextColor(SSD1306_BLACK);
+            display.setTextColor(SSD1306_WHITE);
         }
-        display.print(STANDARD_SETTING_ITEMS[i].name);
-        display.print(": ");
-        display.println(STANDARD_SETTING_ITEMS[i].current_value);
+
+        // Wenn Menüpunkt verstellbar ist/ein Wert besitzt, dann zeige Wert an
+        if (STANDARD_SETTING_ITEMS[i].is_adjustable) {
+            // Name und ": " linksbündig ausgeben
+            display.print(STANDARD_SETTING_ITEMS[i].name);
+            display.print(": ");
+
+            // Breite des Wertes berechnen
+            display.getTextBounds(String(STANDARD_SETTING_ITEMS[i].current_value), 0, 0, &x1, &y1, &w, &h);
+
+            // X-Position berechnen, um den Wert rechtsbündig auszugeben
+            int16_t xPos = display.width() - w;
+
+            // Cursor für den Wert setzen
+            display.setCursor(xPos, i * 8);  // Die gleiche Y-Position wie oben verwenden
+
+            // Wert rechtsbündig ausgeben
+            display.println(STANDARD_SETTING_ITEMS[i].current_value);
+        } else if (settings_active) {
+            // Wenn Menüpunkt nicht verstellbar ist, dann zeige nur den Namen an
+            display.println(STANDARD_SETTING_ITEMS[i].name);
+        } 
+    }
+    if (!settings_active) {
+        display.println("");
+        display.println("Bearbeiten mit 'OK'");
+
     }
 
-    display.display();
 
+    //display.display();
 }
 
 void DisplayManager::updateDisplay() {

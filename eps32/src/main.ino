@@ -46,7 +46,7 @@ void setup() {
 
 
 void loop() {
-  delay(500);
+  delay(50);
 
   // Knopfstatus lesen
   button_ok = !digitalRead(BUTTON_OK);
@@ -65,13 +65,14 @@ void loop() {
 
   }
   //Test
+  /*
   Serial.print("button_ok:" );
   Serial.println(button_ok);
   Serial.print("button_up:" );
   Serial.println(button_up);
   Serial.print("button_down:" );
   Serial.println(button_down);
-
+  */
   
   // Lese Knopfinput und aktualisiere Menü
   displayManager.handleInput(button_ok, button_up, button_down);
@@ -104,10 +105,11 @@ void loop() {
       displayManager.updateDisplay();
     }
   }
-
-  speedController.updateSpeed(); // Aktualisiere Geschwindigkeit und das aktuelle Verhalten, je nach Input und Modus
+  if(!LOCAL_DEBUG){
+    speedController.updateSpeed(); // Aktualisiere Geschwindigkeit und das aktuelle Verhalten, je nach Input und Modus
+  }
   displayManager.updateDisplay(); // Aktualisiere Menü und Display
                     
-  }
+}
 
 

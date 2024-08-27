@@ -74,10 +74,11 @@ const SpeedModeParameter modiParameter[] = {
 
 
 // Menüpunkte für das Display
-const int STANDARD_SETTING_ITEMS_SIZE = 4;
+const int STANDARD_SETTING_ITEMS_SIZE = 5;
 MenuItems STANDARD_SETTING_ITEMS[STANDARD_SETTING_ITEMS_SIZE]= {
     {"Vel Gain", 0.0, 0.1, true, false},
     {"Vel Int Gain", 0.0, 0.05, true, false},
     {"Control Mode", 0.0, 1.0, true, false},
-    {"Save Settings", 0.0, 0.0, false, false}
+    {"Save Settings", 0.0, 0.0, false, false},
+    {"Cancel", 0.0, 0.0, false, false}
 };
