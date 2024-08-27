@@ -10,8 +10,8 @@
 
 class SpeedController {
   public:
-    SpeedController() : odrive(nullptr){} // setze Standardwerte
-
+    SpeedController() : odrive(nullptr), current_speed_mode(STANDARD_SPEED_MODE),current_control_mode(STANDARD_CONTROL_MODE){} // setze Standardwerte
+  
     void setSpeedMode(SpeedMode mode) { current_speed_mode = mode;}
 
     // Gibt den aktuellen Geschwindigkeitsmodus zurück

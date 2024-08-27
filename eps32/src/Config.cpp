@@ -59,7 +59,9 @@ const float RADIUS_WHEEL_CM = 21.0; // Definiere Reifendurchmesser in cm (Für G
 ControlMode STANDARD_CONTROL_MODE = VELOCITY_CONTROL; // Standard Steuerungsmodus
 SpeedMode STANDARD_SPEED_MODE = MODE_1; // standard Geschwindigkeitsmodus
 MenuState STANDARD_MENUE = MENU_MAIN; // standard Menüzustand (Display)
-bool DEBUG_MODE_AKIV = false; // Debugmodus aktivieren
+
+bool DEBUG_MODE_AKIV = true; // Debugmodus und Settingsmenü sind aktivieren
+bool LOCAL_DEBUG = true; // Lokaler Debugmodus aktivieren  -> Test ohne oDrive und Knöpfe. Eingabe über Serielle Schnittstelle (1=OK, 2=UP, 3=DOWN)
 
 // Parameter der einzelnen Speedmodi (Name (für Display), maxSpeed, maxTorque)
 const SpeedModeParameter modiParameter[] = {

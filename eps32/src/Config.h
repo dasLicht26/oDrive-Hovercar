@@ -119,6 +119,7 @@ struct MenuItem {
 extern const MenuItem menu_settings_items[];
 
 extern bool DEBUG_MODE_AKIV;
+extern bool LOCAL_DEBUG;
 
 /*
 ==========================================

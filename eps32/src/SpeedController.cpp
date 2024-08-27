@@ -81,13 +81,18 @@ void SpeedController::stopCar() {
 
 
 void SpeedController::hardwareStartUpCheck(){
+    // Local Debugging --> überspringe ODrive-Initialisierung
+    if (LOCAL_DEBUG) {
+        return;
+    }
+
     // Check ob ODrive verbunden ist, dazu wird eine einfache Abfrage gesendet
     while(odrive->getParameterAsFloat("vbus_voltage") == 0.0){
         delay(30);
     }
     float vBat = odrive->getParameterAsFloat("vbus_voltage");
     if(vBat <= V_BAT_MIN_START) {
-        // displayManager.vBatLowError(vBat); // Endlosschleife -> Batterie leer
+        //displayManager -> setMenuState(ERROR_LOW_VOLTAGE); // Endlosschleife -> Batterie leer
     }
     // Warte bis odrive hochgefahren ist und State nicht mehr "undefined" ist
     while (odrive->getState(0) == AXIS_STATE_UNDEFINED) {

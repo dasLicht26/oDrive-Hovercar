@@ -31,9 +31,16 @@ void DisplayManager::handleInput(bool button_ok, bool button_up, bool button_dow
         last_button = button_pressend;
     }
     
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(0, 0);
 
-    updateMenuState();
-    updateMenuItem();
+    display.print("Button: ");
+    display.println(button_pressend);
+    display.display();
+    //updateMenuState();
+    //updateMenuItem();
 }
 
 void DisplayManager::updateMenuState() {
@@ -117,15 +124,24 @@ void DisplayManager::updateDisplay() {
     if(speedController == nullptr) {
         display.println("Display Error!");
         display.print("SpeedController not set!"); 
+        display.display();
         return;
     }
 
     // Lese aktuelle Werte von SpeedController
-    mode_parameter = speedController->getSpeedModeParameter();
-    bat_voltage = speedController->getBatteryVoltage();
-    bat_percent = speedController->getBatteryPercentage();
-    requested_kmh = speedController->getRequestedKMH();
-    current_kmh = speedController->getCurrentKMH();
+    if (!LOCAL_DEBUG){
+        mode_parameter = speedController->getSpeedModeParameter();
+        bat_voltage = speedController->getBatteryVoltage();
+        bat_percent = speedController->getBatteryPercentage();
+        requested_kmh = speedController->getRequestedKMH();
+        current_kmh = speedController->getCurrentKMH();
+    } else {
+        mode_parameter = speedController->getSpeedModeParameter();
+        bat_voltage = 36.0;
+        bat_percent = 68;
+        requested_kmh = 12.3;
+        current_kmh = 9.4;
+    }
 
     switch (current_menu_state) {
     case MENU_MAIN:
@@ -154,15 +170,22 @@ void DisplayManager::displayDebugMenu() {
         return;
     }
 
-
-
-    // Erstelle den anzuzeigenden String
-    String displayString = 
+    String displayString;
+    if (!LOCAL_DEBUG){    // Erstelle den anzuzeigenden String
+        displayString = 
             "Speed: " + String(current_kmh, 2) + " km/h\n" +
             "Strom: " + String(speedController->getVBusCurrent(), 2) + " A\n" +
             "Drehmoment: " + String(speedController->getCurrentNM(), 2) + " Nm\n" +
             "angef_kmh: " + String(requested_kmh, 2) + " km/h\n" +
             "angef_NM: " + String(speedController->getRequestedNm(), 2) + " Nm\n";
+    } else {
+        displayString = 
+            "Speed: " + String(current_kmh, 2) + " km/h\n" +
+            "Strom: " + String(11.2) + " A\n" +
+            "Drehmoment: " + String(8.4, 2) + " Nm\n" +
+            "angef_kmh: " + String(requested_kmh, 2) + " km/h\n" +
+            "angef_NM: " + String(9.1, 2) + " Nm\n";
+    }
 
     display.println(displayString);
 }

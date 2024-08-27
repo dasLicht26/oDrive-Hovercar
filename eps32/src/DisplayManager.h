@@ -12,6 +12,9 @@
 
 class DisplayManager {
 public:
+
+    DisplayManager() : current_menu_state(STANDARD_MENUE){} // setze Standardwerte
+
     void setup(){
         display = Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET); //initialisiere OLED-Display
         Wire.begin(OLED_SDA, OLED_SCL); // Initialisiere I2C mit SDA und SCL Pins
@@ -20,10 +23,8 @@ public:
                 Serial.println(F("SSD1306 allocation failed"));
                 for (;;);
             }
+        displayBootlogo();
     }
-
-    // zeige Bootlogo
-    void displayBootlogo();
 
     // setze aktuellen Menüzustand (z.B. bei Fehler)
     void setMenuState(MenuState state);
@@ -87,6 +88,9 @@ private:
 
     // zeige Fehler an
     void displayErrors();
+
+    // zeige Bootlogo
+    void displayBootlogo();
 };
 
 #endif // DISPLAY_MANAGER_H
