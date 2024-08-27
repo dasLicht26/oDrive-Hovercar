@@ -4,6 +4,7 @@
 
 #include "Arduino.h"
 #include "ODriveUART.h"
+#include "Config.h"
 
 
 static const int kMotorNumber = 0;
@@ -133,7 +134,14 @@ ODriveAxisState ODriveUART::getState(int axis) {
 }
 
 String ODriveUART::readLine(unsigned long timeout_ms) {
+    
     String str = "";
+    if(LOCAL_DEBUG){
+        str = "Local Debug aktiv";
+        return str;
+    }
+
+
     unsigned long timeout_start = millis();
     delay(10);
 

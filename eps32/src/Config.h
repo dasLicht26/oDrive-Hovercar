@@ -109,14 +109,17 @@ enum MenuState {
 };
 extern MenuState STANDARD_MENUE;
 
-struct MenuItem {
+struct MenuItems {
     String name;
     float current_value;
     float step;
     bool is_adjustable;
     bool is_active;
 };
-extern const MenuItem menu_settings_items[];
+
+extern const int STANDARD_SETTING_ITEMS_SIZE;
+extern MenuItems STANDARD_SETTING_ITEMS[];
+
 
 extern bool DEBUG_MODE_AKIV;
 extern bool LOCAL_DEBUG;

@@ -43,7 +43,7 @@ private:
     Adafruit_SSD1306 display;          // Zeiger auf Display-Objekt
     MenuState current_menu_state;         // Aktueller Menüzustand
     SpeedModeParameter mode_parameter;  // Parameter des aktuellen Geschwindigkeitsmodus
-    std::vector<MenuItem> menu_settings_items;    // verfügbare Menüpunkte der Einstellungen
+    //std::vector<MenuItem> STANDARD_SETTING_ITEMS;    // verfügbare Menüpunkte der Einstellungen
     std::vector<ODriveErrors> errors;   // ausgelesene Fehlerliste aus oDrive
     char last_button;            // zuletzt gedrückter Knopf (o, +, -) oder n für nichts, um Doppelklicks zu vermeiden
     char button_pressend;        // aktuell gedrückter Knopf

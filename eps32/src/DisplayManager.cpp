@@ -1,4 +1,5 @@
 #include "DisplayManager.h"
+#include "Config.h"
 
 
 void DisplayManager::displayBootlogo() {
@@ -31,16 +32,23 @@ void DisplayManager::handleInput(bool button_ok, bool button_up, bool button_dow
         last_button = button_pressend;
     }
     
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0);
+    if (last_button = 'n'){
+        return;
+    } 
 
-    display.print("Button: ");
-    display.println(button_pressend);
-    display.display();
-    //updateMenuState();
+    if (LOCAL_DEBUG){
+        delay(500);
+        display.clearDisplay();
+        display.setTextSize(4);
+        display.setTextColor(SSD1306_WHITE);
+        display.setCursor(0, 0);
+        display.println(button_pressend);
+        display.println(current_menu_state);
+        display.display();
+    }
+    updateMenuState();
     //updateMenuItem();
+
 }
 
 void DisplayManager::updateMenuState() {
@@ -73,22 +81,22 @@ void DisplayManager::updateMenuState() {
 }
 
 void DisplayManager::updateMenuItem() {
-    if (current_menu_state == MENU_SETTINGS && !menu_settings_items[menu_settings_state].is_active) {
+    if (current_menu_state == MENU_SETTINGS && !STANDARD_SETTING_ITEMS[menu_settings_state].is_active) {
         if (button_pressend == '+') {
             menu_settings_state++;
-            if (menu_settings_state >= menu_settings_items.size()) {
+            if (menu_settings_state >= STANDARD_SETTING_ITEMS_SIZE) {
                 menu_settings_state = 0;
             }
         } else if (button_pressend == '-') {
             menu_settings_state--;
             if (menu_settings_state < 0) {
-                menu_settings_state = menu_settings_items.size() - 1;
+                menu_settings_state = STANDARD_SETTING_ITEMS_SIZE - 1;
             }
         } else if (button_pressend == 'o') {
-            if (menu_settings_items[menu_settings_state].is_active) {
-            menu_settings_items[menu_settings_state].is_active = false;
+            if (STANDARD_SETTING_ITEMS[menu_settings_state].is_active) {
+            STANDARD_SETTING_ITEMS[menu_settings_state].is_active = false;
             } else {
-            menu_settings_items[menu_settings_state].is_active = true;
+            STANDARD_SETTING_ITEMS[menu_settings_state].is_active = true;
             }
         }
     }
@@ -97,18 +105,18 @@ void DisplayManager::updateMenuItem() {
 void DisplayManager::displaySettingsMenu() {
 
 
-    for (int i = 0; i < menu_settings_items.size(); i++) {
+    for (int i = 0; i < STANDARD_SETTING_ITEMS_SIZE; i++) {
         if (i == menu_settings_state) {
             display.print(">");
         }
-        if (menu_settings_items[i].is_active) {
+        if (STANDARD_SETTING_ITEMS[i].is_active) {
             display.setTextColor(SSD1306_WHITE);
         } else {
             display.setTextColor(SSD1306_BLACK);
         }
-        display.print(menu_settings_items[i].name);
+        display.print(STANDARD_SETTING_ITEMS[i].name);
         display.print(": ");
-        display.println(menu_settings_items[i].current_value);
+        display.println(STANDARD_SETTING_ITEMS[i].current_value);
     }
 
     display.display();
