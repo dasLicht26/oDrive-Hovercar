@@ -18,29 +18,39 @@ class EepromSettings {
       EEPROM.begin(512); // Initialisiere EEPROM mit 512 Bytes
     }
 
-    void saveSettings(const Settings& settings) {
-      EEPROM.put(0, settings); //Speichert es an Pos. 0
+    void saveTorqueSlope(float nm_slope) {
+      EEPROM.put(0, nm_slope); //Speichert es an Pos. 0
       EEPROM.commit(); // Stelle sicher, dass die Daten in den EEPROM geschrieben werden
     }
 
-    void loadSettings(Settings& settings) {
-      EEPROM.get(0, settings); // Lese aus Pos. 0
-        if (isValidSettings(settings)) {
-            // Geladene Einstellungen sind valide
-        } else {
-            // Lade Standardwerte, falls die gespeicherten Einstellungen ungültig sind
-            settings.speedMode = MODE_1;
-            settings.controlMode = VELOCITY_CONTROL;
-            settings.velocityGain = 0.9; // Setze deine Standardwerte
-            settings.velocityIntegratorGain = 3.0; // Setze deine Standardwerte
-        }
+    float loadTorqueSlope() {
+      float nm_slope;
+      EEPROM.get(0, nm_slope); // Lese aus Pos. 0
+      if (isnan(nm_slope)) {
+        nm_slope = STANDARD_SETTING_ITEMS[3].current_value;
+        saveTorqueSlope(nm_slope);
+      }
+      return nm_slope;
     }
 
-  private:
-    bool isValidSettings(const Settings& settings) {
-      return  !isnan(settings.velocityGain) && settings.velocityGain >= 0.0 &&
-              !isnan(settings.velocityIntegratorGain) && settings.velocityIntegratorGain >= 0.0;
+    void saveTorqueMinimum(float nm_minimum) {
+      EEPROM.put(4, nm_minimum); //Speichert es an Pos. 4
+      EEPROM.commit(); // Stelle sicher, dass die Daten in den EEPROM geschrieben werden
     }
+
+    float loadTorqueMinimum() {
+      float nm_minimum;
+      EEPROM.get(4, nm_minimum); // Lese aus Pos. 4
+
+      // Wenn Wert nicht gesetzt ist oder ungültig (nan) ist, setze ihn auf 2.0
+      if (isnan(nm_minimum)) {
+        nm_minimum = STANDARD_SETTING_ITEMS[2].current_value;
+        saveTorqueMinimum(nm_minimum);
+      }
+
+      return nm_minimum;
+    }
+
 };
 
 #endif

@@ -28,14 +28,20 @@ void SpeedController::updateSpeed(){
 
 // ODrive initialisieren/setup -> Ändert die Konfig dauerhaft
 void SpeedController::saveODriveConfig() {
+    
+    eeprom->saveTorqueSlope(STANDARD_SETTING_ITEMS[3].current_value);
+    eeprom->saveTorqueMinimum(STANDARD_SETTING_ITEMS[2].current_value);
+
     if (LOCAL_DEBUG) {
         return;
     }
 
+
     if (odrive != nullptr) {
+
         odrive->clearErrors();
-        odrive->setVelocityGain(velocity_gain);     // Proportionaler Anteil p-PID
-        odrive->setVelocityIntegratorGain(velocity_integrator_gain);    // Integratoranteil i-PID
+        odrive->setVelocityGain(STANDARD_SETTING_ITEMS[0].current_value);     // Proportionaler Anteil p-PID
+        odrive->setVelocityIntegratorGain(STANDARD_SETTING_ITEMS[1].current_value);    // Integratoranteil i-PID
 
         switch (getControlMode()){
             case TORQUE_CONTROL: {
@@ -164,10 +170,26 @@ float SpeedController::getCurrentVelocity() {
     return 0.0;
 }
 
+float SpeedController::calculateTorque(float velocity) {
+    //Quadratische Funktion, um das maximale Drehmoment abhängig von der Geschwindigkeit zu berechnen
+    float min_torque = STANDARD_SETTING_ITEMS[2].current_value;
+    float max_torque = getSpeedModeParameter().maxTorque;
+    float torque_slope = STANDARD_SETTING_ITEMS[3].current_value;
+    float torque = min_torque + torque_slope * pow(velocity, 2); 
+
+    // Begrenze das Drehmoment auf den maximalen Wert
+    if (torque > max_torque) {
+        torque = max_torque;
+    }
+
+    return torque;
+}
+
 // Zielgeschwindigkeit setzen in RPS
 void SpeedController::setTargetVelocity(float velocity) {
+    float torque = calculateTorque(velocity);
     if (odrive != nullptr) {
-        odrive->setVelocity(velocity);
+        odrive->setVelocity(velocity, torque);
     }
 }
 

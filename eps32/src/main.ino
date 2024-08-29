@@ -28,6 +28,7 @@ void setup() {
     displayManager.setup(); // Initialisiere DisplayManager
     eepromSettings.setup(); // Initialisiere EPROM Speicher
     speedController.setODrive(&odrive); // übergebe Zeiger auf ODrive-Objekt an SpeedController
+    speedController.setEeprom(&eepromSettings); // übergebe Zeiger auf EepromSettings-Objekt an SpeedController
     displayManager.setSpeedController(&speedController); // übergebe Zeiger auf SpeedController-Objekt an DisplayManager
 
     // Initialisiere HardwareButtons

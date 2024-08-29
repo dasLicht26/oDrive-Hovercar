@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "Config.h"
 #include "ODriveUART.h"
+#include "EEPROMSettings.h"
 #include <vector>
 #include <string>
 
@@ -32,6 +33,21 @@ class SpeedController {
     // Gibt die aktuelle Batteriespannung zurück
     float getBatteryVoltage() { return odrive->getParameterAsFloat("vbus_voltage"); }
 
+    // Liefert Nm Anstiegsparameter zurück
+    float getTorqueSlope() { return eeprom->loadTorqueSlope(); }
+
+    // Liefert Nm Untergrenze zurück
+    float getTorqueMinimum() { return eeprom->loadTorqueMinimum(); }
+
+    // Setze Nm Anstiegsparameter
+    void setTorqueSlope(float slope) { eeprom->saveTorqueSlope(slope); }
+
+    // Setze Nm Untergrenze
+    void setTorqueMinimum(float minimum) { eeprom->saveTorqueMinimum(minimum); }
+
+    // Berechne das Drehmoment in Nm anhand der rps um die Geschwindigkeit gleichmäßig zu steigern (Kein Ruck beim Anfahren)
+    float calculateTorque(float velocity_rps);
+
     // Gibt den Batterieprozentsatz zurück
     int getBatteryPercentage() { return map(getBatteryVoltage(), V_BAT_MIN, V_BAT_MAX, 0, 100); }
 
@@ -49,6 +65,9 @@ class SpeedController {
 
     // ODrive Instanz setzen
     void setODrive(ODriveUART* odriveInstance) { odrive = odriveInstance; }
+
+    // Eeprom Instanz setzen
+    void setEeprom(EepromSettings* eepromInstance) { eeprom = eepromInstance; }
 
     // Aktuelle Batterielast auslesen in Ampere
     float getVBusCurrent();
@@ -112,6 +131,7 @@ class SpeedController {
     SpeedMode temp_speed_mode; // Temporärer Geschwindigkeitsmodus -> Wird für Rückwertsgang benötigt
     ControlMode current_control_mode; // Aktuell ausgewählter SteuerungsModus
     ODriveUART* odrive; // Zeiger auf die ODrive Instanz
+    EepromSettings* eeprom; // Zeiger auf die EepromSettings Instanz
     float velocity_gain; // p-PID
     float velocity_integrator_gain; // i-PID
 };

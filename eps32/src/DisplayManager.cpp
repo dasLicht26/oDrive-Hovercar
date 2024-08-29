@@ -36,10 +36,9 @@ void DisplayManager::handleInput(bool button_ok, bool button_up, bool button_dow
         return;
     }
 
+    // Reihenfolge von updateMenueItem und updateMenuState nicht ändern!!
     updateMenuItem();
     updateMenuState();
-    
-
 }
 
 void DisplayManager::updateMenuState() {
@@ -76,7 +75,8 @@ void DisplayManager::updateMenuItem() {
     if(!settings_active) {
         STANDARD_SETTING_ITEMS[0].current_value = speedController->getVelocityGain();
         STANDARD_SETTING_ITEMS[1].current_value = speedController->getVelocityIntegratorGain();
-        STANDARD_SETTING_ITEMS[2].current_value = 3.0;
+        STANDARD_SETTING_ITEMS[2].current_value = speedController->getTorqueMinimum();
+        STANDARD_SETTING_ITEMS[3].current_value = speedController->getTorqueSlope();
         return;
     }
 
@@ -110,27 +110,24 @@ void DisplayManager::updateMenuItem() {
             }
         } 
     }
-
+    // ok wird gedrückt
     if (button_pressed == 'o') {
+        // setze ausgewählten Menüpunkt is_aktiv true/false (aktiv = Einstellungen können für diesen Punkt geändert werden. +/- ändert den Wert, nicht mehr das Menü)
         if (STANDARD_SETTING_ITEMS[menu_settings_state].is_active) {
         STANDARD_SETTING_ITEMS[menu_settings_state].is_active = false;
         } else {
         STANDARD_SETTING_ITEMS[menu_settings_state].is_active = true;
         }
-
+        // Wenn Menüpunk nicht is_adjustabe ist, dann ist dies Speichern oder Abbrechen. Wird dies mit 'ok' gewählt reagiere entsprechend. 
         if (!STANDARD_SETTING_ITEMS[menu_settings_state].is_adjustable) {
             settings_active = false;
             STANDARD_SETTING_ITEMS[menu_settings_state].is_active = false;
             button_pressed = 'n';
             if (STANDARD_SETTING_ITEMS[menu_settings_state].name == "Save Settings") {
-                current_menu_state = MENU_MAIN;
-                speedController->saveODriveConfig();
-                /* ToDo: Speichere die Einstellungen in oDrive */
-            } else {
                 current_menu_state = MENU_SETTINGS;
-                /* ToDo: Verwerfe die Einstellungen */
+                speedController->saveODriveConfig();
             }
-        }   
+        }
     }
 }
 
@@ -177,7 +174,7 @@ void DisplayManager::displaySettingsMenu() {
             display.setCursor(xPos, i * 8);  // Die gleiche Y-Position wie oben verwenden
 
             // Wert rechtsbündig ausgeben
-            display.println(STANDARD_SETTING_ITEMS[i].current_value);
+            display.println(STANDARD_SETTING_ITEMS[i].current_value, 3);
         } else if (settings_active) {
             // Wenn Menüpunkt nicht verstellbar ist, dann zeige nur den Namen an
             display.println(STANDARD_SETTING_ITEMS[i].name);
