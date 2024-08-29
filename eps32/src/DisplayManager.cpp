@@ -72,23 +72,45 @@ void DisplayManager::updateMenuState() {
 }
 
 void DisplayManager::updateMenuItem() {
+    // Einstellungsmenü ist nicht aktiv -> aktuallisiere/resette die Einstellungen
     if(!settings_active) {
+        STANDARD_SETTING_ITEMS[0].current_value = speedController->getVelocityGain();
+        STANDARD_SETTING_ITEMS[1].current_value = speedController->getVelocityIntegratorGain();
+        STANDARD_SETTING_ITEMS[2].current_value = 3.0;
         return;
     }
 
-    if (current_menu_state == MENU_SETTINGS && !STANDARD_SETTING_ITEMS[menu_settings_state].is_active) {
+    // Einstellungsmenü ist aktiv und Menüpunkt Settings ist auch aktiv (eigentlich überflüssig)
+    if (current_menu_state == MENU_SETTINGS) {
+        // - wird gedrückt
         if (button_pressed == '-') {
-            menu_settings_state++;
-            if (menu_settings_state >= STANDARD_SETTING_ITEMS_SIZE) {
-                menu_settings_state = 0;
+            // Wenn Menüpunkt aktuell NICHT bearbeitet wird, schalte durch das Menü (runter)
+            if (!STANDARD_SETTING_ITEMS[menu_settings_state].is_active){
+                menu_settings_state++;
+                if (menu_settings_state >= STANDARD_SETTING_ITEMS_SIZE) {
+                    menu_settings_state = 0;
+                }
+            } else {
+                // Wenn Menüpunkt verstellbar ist und aktuell bearbeitet wird, dann verändere diesen Wert
+                STANDARD_SETTING_ITEMS[menu_settings_state].current_value -= STANDARD_SETTING_ITEMS[menu_settings_state].step;
+                if (STANDARD_SETTING_ITEMS[menu_settings_state].current_value < 0.0) {
+                    STANDARD_SETTING_ITEMS[menu_settings_state].current_value = 0.0;
+                }
             }
+        // + wird gedrückt
         } else if (button_pressed == '+') {
-            menu_settings_state--;
-            if (menu_settings_state < 0) {
-                menu_settings_state = STANDARD_SETTING_ITEMS_SIZE - 1;
+            if (!STANDARD_SETTING_ITEMS[menu_settings_state].is_active){
+                menu_settings_state--;
+                if (menu_settings_state < 0) {
+                    menu_settings_state = STANDARD_SETTING_ITEMS_SIZE - 1;
+                }
+            } else {
+                // Wenn Menüpunkt verstellbar ist und aktuell bearbeitet wird, dann verändere diesen Wert
+                STANDARD_SETTING_ITEMS[menu_settings_state].current_value += STANDARD_SETTING_ITEMS[menu_settings_state].step;
             }
-        }
+        } 
     }
+
     if (button_pressed == 'o') {
         if (STANDARD_SETTING_ITEMS[menu_settings_state].is_active) {
         STANDARD_SETTING_ITEMS[menu_settings_state].is_active = false;
@@ -102,12 +124,11 @@ void DisplayManager::updateMenuItem() {
             button_pressed = 'n';
             if (STANDARD_SETTING_ITEMS[menu_settings_state].name == "Save Settings") {
                 current_menu_state = MENU_MAIN;
-
+                speedController->saveODriveConfig();
                 /* ToDo: Speichere die Einstellungen in oDrive */
             } else {
                 current_menu_state = MENU_SETTINGS;
                 /* ToDo: Verwerfe die Einstellungen */
-
             }
         }   
     }

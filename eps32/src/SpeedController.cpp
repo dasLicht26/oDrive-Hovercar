@@ -28,10 +28,14 @@ void SpeedController::updateSpeed(){
 
 // ODrive initialisieren/setup -> Ändert die Konfig dauerhaft
 void SpeedController::saveODriveConfig() {
+    if (LOCAL_DEBUG) {
+        return;
+    }
+
     if (odrive != nullptr) {
         odrive->clearErrors();
-        odrive->setVelocityGain(velocity_gain); // Proportionaler Anteil p-PID
-        odrive->setVelocityIntegratorGain(velocity_integrator_gain);  // Integratoranteil i-PID
+        odrive->setVelocityGain(velocity_gain);     // Proportionaler Anteil p-PID
+        odrive->setVelocityIntegratorGain(velocity_integrator_gain);    // Integratoranteil i-PID
 
         switch (getControlMode()){
             case TORQUE_CONTROL: {
@@ -45,7 +49,6 @@ void SpeedController::saveODriveConfig() {
                 break;
             }
         }
-
         odrive->setParameter("axis0.motor.config.current_lim", BAT_MAX_CURRENT/2);
         odrive->setParameter("axis1.motor.config.current_lim", BAT_MAX_CURRENT/2);
 

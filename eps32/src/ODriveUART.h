@@ -71,6 +71,10 @@ public:
      */
     void setVelocityIntegratorGain(float velocity_integrator_gain);
 
+    float getVelocityGain();
+
+    float getVelocityIntegratorGain();
+
     /**
      * @brief axis.controller.config.control_mode
      */

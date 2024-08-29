@@ -123,6 +123,22 @@ void ODriveUART::setState(ODriveAxisState requested_state, int axis) {
     setParameter("axis1.controller.config.control_mode", control_mode);
 }
 
+float ODriveUART::getVelocityGain(){
+    float gain = 0.0;
+    gain += getParameterAsFloat("axis0.controller.config.vel_gain");
+    gain += getParameterAsFloat("axis1.controller.config.vel_gain");
+    return gain/2;
+}
+
+float ODriveUART::getVelocityIntegratorGain(){
+    float gain = 0.0;
+    gain += getParameterAsFloat("axis0.controller.config.velocity_integrator_gain");
+    gain += getParameterAsFloat("axis1.controller.config.velocity_integrator_gain");
+    return gain/2;
+}
+
+
+
 ODriveAxisState ODriveUART::getState(int axis) {
     if (axis == 0) {
         return (ODriveAxisState)getParameterAsInt("axis0.current_state");

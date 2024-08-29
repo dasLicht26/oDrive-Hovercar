@@ -39,13 +39,13 @@ class SpeedController {
     bool isBatteryLow() { return getBatteryVoltage() < V_BAT_MIN; }
 
     // Gibt den aktuellen p-PID Gain zurück
-    float getVelocityGain() { return velocity_gain; }
-
-    // Setze den Integrator Gain
-    void setVelocityIntegratorGain(float gain) { velocity_integrator_gain = gain;}
+    float getVelocityGain() { if (!LOCAL_DEBUG){ return odrive->getVelocityGain();} else {return 1.5;} }
 
     // Gibt den aktuellen i-PID Integrator Gain zurück
-    float getVelocityIntegratorGain() { return velocity_integrator_gain; }
+    float getVelocityIntegratorGain() { if (!LOCAL_DEBUG){return odrive->getVelocityIntegratorGain();} else {return 2.5;} }
+
+    // Setze den Integrator Gain
+    void setVelocityIntegratorGain(float gain) { velocity_integrator_gain = gain; }
 
     // ODrive Instanz setzen
     void setODrive(ODriveUART* odriveInstance) { odrive = odriveInstance; }
