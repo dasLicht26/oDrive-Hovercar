@@ -123,9 +123,11 @@ void DisplayManager::updateMenuItem() {
             settings_active = false;
             STANDARD_SETTING_ITEMS[menu_settings_state].is_active = false;
             button_pressed = 'n';
-            if (STANDARD_SETTING_ITEMS[menu_settings_state].name == "Save Settings") {
+            if (STANDARD_SETTING_ITEMS[menu_settings_state].name == "Save Settings") { // --> Save Settings
                 current_menu_state = MENU_SETTINGS;
                 speedController->saveODriveConfig();
+            } else{ // --> Cancel
+                setMenuState(MENU_MAIN);
             }
         }
     }
@@ -165,13 +167,8 @@ void DisplayManager::displaySettingsMenu() {
             display.print(": ");
 
             // Breite des Wertes berechnen
-            if (i < 2) {
-                display.getTextBounds(String(STANDARD_SETTING_ITEMS[i].current_value, 2), 0, 0, &x1, &y1, &w, &h);
-            } else if(i == 2) {
-                display.getTextBounds(String(STANDARD_SETTING_ITEMS[i].current_value, 1), 0, 0, &x1, &y1, &w, &h);
-            } else {
-                display.getTextBounds(String(STANDARD_SETTING_ITEMS[i].current_value, 3), 0, 0, &x1, &y1, &w, &h);
-            }
+            display.getTextBounds(String(STANDARD_SETTING_ITEMS[i].current_value, STANDARD_SETTING_ITEMS[i].digits), 0, 0, &x1, &y1, &w, &h);
+            
 
             // X-Position berechnen, um den Wert rechtsbündig auszugeben
             int16_t xPos = display.width() - w;
@@ -180,13 +177,8 @@ void DisplayManager::displaySettingsMenu() {
             display.setCursor(xPos, i * 8);  // Die gleiche Y-Position wie oben verwenden
 
             // Wert rechtsbündig ausgeben
-            if (i < 2) {
-                display.println(STANDARD_SETTING_ITEMS[i].current_value, 2);
-            } else if(i == 2) {
-                display.println(STANDARD_SETTING_ITEMS[i].current_value, 1);
-            } else {
-                display.println(STANDARD_SETTING_ITEMS[i].current_value, 3);
-            }
+            display.println(STANDARD_SETTING_ITEMS[i].current_value, STANDARD_SETTING_ITEMS[i].digits);
+   
         } else if (settings_active) {
             // Wenn Menüpunkt nicht verstellbar ist, dann zeige nur den Namen an
             display.println(STANDARD_SETTING_ITEMS[i].name);

@@ -76,10 +76,10 @@ const SpeedModeParameter modiParameter[] = {
 // Menüpunkte für das Display
 const int STANDARD_SETTING_ITEMS_SIZE = 6;
 MenuItems STANDARD_SETTING_ITEMS[STANDARD_SETTING_ITEMS_SIZE]= { // Item_size anpassen! 
-    {"Vel Gain", 0.0, 0.01, true, false},
-    {"Vel Int Gain", 0.0, 0.01, true, false},
-    {"Min. Nm", 2.0, 0.1, true, false},
-    {"Nm Slope", 0.031, 0.001, true, false},
-    {"Save Settings", 0.0, 0.0, false, false},
-    {"Cancel", 0.0, 0.0, false, false}
+    {"Vel Gain", 0.0, 0.01, 2, true, false},
+    {"Vel Int Gain", 0.0, 0.01, 2, true, false},
+    {"Min. Nm", 2.0, 0.1, 1, true, false},
+    {"Nm Slope", 0.031, 0.001, 3,  true, false},
+    {"Save Settings", 0.0, 0.0, 0, false, false},
+    {"Cancel", 0.0, 0.0, 0, false, false}
 };

@@ -110,11 +110,12 @@ enum MenuState {
 extern MenuState STANDARD_MENUE;
 
 struct MenuItems {
-    String name;
-    float current_value;
-    float step;
-    bool is_adjustable;
-    bool is_active;
+    String name;        // Anzeigename
+    float current_value;// Aktueller Wert (wird automatisch gesetzt)
+    float step;         // Schrittweite
+    int digits;         // Anzahl der angezeigten Nachkommastellen
+    bool is_adjustable; // ob Wert verstellbar ist
+    bool is_active;     // ob Menüpunkt aktiv ist (wird automatisch gesetzt, standard = false)
 };
 
 extern const int STANDARD_SETTING_ITEMS_SIZE;
