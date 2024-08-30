@@ -243,30 +243,67 @@ void DisplayManager::updateDisplay() {
 }
 
 void DisplayManager::displayDebugMenu() {
+    display.setTextSize(2);
+
+    int line = 0;
+    int line_distance = 16; // abstabd in Pixel zwischen den Zeilen
+    int digits = 1; //nachkomma stellen
+    int16_t x1, y1;
+    uint16_t w, h;
+    float current_a;
+    float current_nm;
+    float current_v;
+    float current_kmh;
+
     if(speedController == nullptr) {
         display.println("Display Error!");
         display.print("SpeedController not set!"); 
         return;
     }
-
-    String displayString;
-    if (!LOCAL_DEBUG){    // Erstelle den anzuzeigenden String
-        displayString = 
-            "Speed: " + String(current_kmh, 2) + " km/h\n" +
-            "Strom: " + String(speedController->getVBusCurrent(), 2) + " A\n" +
-            "Drehmoment: " + String(speedController->getCurrentNM(), 2) + " Nm\n" +
-            "angef_kmh: " + String(requested_kmh, 2) + " km/h\n" +
-            "angef_NM: " + String(speedController->getRequestedNm(), 2) + " Nm\n";
+    if (!LOCAL_DEBUG){
+        current_a = speedController->getVBusCurrent();
+        current_nm = speedController->getCurrentNM();
+        current_v = speedController->getBatteryVoltage();
+        current_kmh = speedController->getCurrentKMH();
     } else {
-        displayString = 
-            "Speed: " + String(current_kmh, 2) + " km/h\n" +
-            "Strom: " + String(11.2) + " A\n" +
-            "Drehmoment: " + String(8.4, 2) + " Nm\n" +
-            "angef_kmh: " + String(requested_kmh, 2) + " km/h\n" +
-            "angef_NM: " + String(9.1, 2) + " Nm\n";
+        current_a = 11.2;
+        current_nm = 8.4;
+        current_v = 36.0;
+        current_kmh = 9.1;
     }
+    // Ampere
+    display.setCursor(0, line*line_distance);  // Annahme: Jede Zeile ist 8 Pixel hoch, passe dies entsprechend an
+    display.print("Ampere:");
+    display.getTextBounds(String(current_a, digits), 0, 0, &x1, &y1, &w, &h); // Breite des Wertes berechnen
+    int16_t xPos = display.width() - w; // X-Position berechnen, um den Wert rechtsbündig auszugeben
+    display.setCursor(xPos, line * line_distance);  // Die gleiche Y-Position wie oben verwenden
+    display.println(current_a, digits); // Wert rechtsbündig ausgeben
+    // Nm
+    line++;
+    display.setCursor(0, line*line_distance);  // Annahme: Jede Zeile ist 8 Pixel hoch, passe dies entsprechend an
+    display.print("Nm:");
+    display.getTextBounds(String(current_nm, digits), 0, 0, &x1, &y1, &w, &h); // Breite des Wertes berechnen
+    xPos = display.width() - w; // X-Position berechnen, um den Wert rechtsbündig auszugeben
+    display.setCursor(xPos, line * line_distance);  // Die gleiche Y-Position wie oben verwenden
+    display.println(current_nm, digits); // Wert rechtsbündig ausgeben
+    // Volt
+    line++;
+    display.setCursor(0, line*line_distance);  // Annahme: Jede Zeile ist 8 Pixel hoch, passe dies entsprechend an
+    display.print("VBat:");
+    display.getTextBounds(String(current_v, digits), 0, 0, &x1, &y1, &w, &h); // Breite des Wertes berechnen
+    xPos = display.width() - w; // X-Position berechnen, um den Wert rechtsbündig auszugeben
+    display.setCursor(xPos, line * line_distance);  // Die gleiche Y-Position wie oben verwenden
+    display.println(current_v, digits); // Wert rechtsbündig ausgeben
+    // Kmh
+    line++;
+    display.setCursor(0, line*line_distance);  // Annahme: Jede Zeile ist 8 Pixel hoch, passe dies entsprechend an
+    display.print("Kmh:");
+    display.getTextBounds(String(current_kmh, digits), 0, 0, &x1, &y1, &w, &h); // Breite des Wertes berechnen
+    xPos = display.width() - w; // X-Position berechnen, um den Wert rechtsbündig auszugeben
+    display.setCursor(xPos, line * line_distance);  // Die gleiche Y-Position wie oben verwenden
+    display.println(current_kmh, digits); // Wert rechtsbündig ausgeben
 
-    display.println(displayString);
+
 }
 
 void DisplayManager::displaySpeedmode(){
