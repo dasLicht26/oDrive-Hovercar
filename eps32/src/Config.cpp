@@ -57,7 +57,7 @@ const int OLED_RESET = -1;
 const float RADIUS_WHEEL_CM = 21.0; // Definiere Reifendurchmesser in cm (Für Geschwindigkeitberechnung in Kmh)
 
 ControlMode STANDARD_CONTROL_MODE = VELOCITY_CONTROL; // Standard Steuerungsmodus
-SpeedMode STANDARD_SPEED_MODE = MODE_1; // standard Geschwindigkeitsmodus
+SpeedMode STANDARD_SPEED_MODE = MODE_4; // standard Geschwindigkeitsmodus
 MenuState STANDARD_MENUE = MENU_MAIN; // standard Menüzustand (Display)
 
 bool DEBUG_MODE_AKIV = true; // Debugmodus und Settingsmenü sind aktivieren
@@ -69,14 +69,14 @@ const SpeedModeParameter modiParameter[] = {
   {"2", 8.0, 6.0},
   {"3", 12.0, 8.0},
   {"4", 16.0, 999.0},
-  {"R", -4.0, -5.0},
+  {"R", -4.0, 5.0},
 };
 
 
 // Menüpunkte für das Display
 const int STANDARD_SETTING_ITEMS_SIZE = 6;
 MenuItems STANDARD_SETTING_ITEMS[STANDARD_SETTING_ITEMS_SIZE]= { // Item_size anpassen! 
-    {"Vel Gain", 0.0, 0.002, true, false},
+    {"Vel Gain", 0.0, 0.01, true, false},
     {"Vel Int Gain", 0.0, 0.01, true, false},
     {"Min. Nm", 2.0, 0.1, true, false},
     {"Nm Slope", 0.031, 0.001, true, false},

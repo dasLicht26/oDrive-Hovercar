@@ -165,7 +165,13 @@ void DisplayManager::displaySettingsMenu() {
             display.print(": ");
 
             // Breite des Wertes berechnen
-            display.getTextBounds(String(STANDARD_SETTING_ITEMS[i].current_value), 0, 0, &x1, &y1, &w, &h);
+            if (i < 2) {
+                display.getTextBounds(String(STANDARD_SETTING_ITEMS[i].current_value, 2), 0, 0, &x1, &y1, &w, &h);
+            } else if(i == 2) {
+                display.getTextBounds(String(STANDARD_SETTING_ITEMS[i].current_value, 1), 0, 0, &x1, &y1, &w, &h);
+            } else {
+                display.getTextBounds(String(STANDARD_SETTING_ITEMS[i].current_value, 3), 0, 0, &x1, &y1, &w, &h);
+            }
 
             // X-Position berechnen, um den Wert rechtsbündig auszugeben
             int16_t xPos = display.width() - w;
@@ -174,7 +180,13 @@ void DisplayManager::displaySettingsMenu() {
             display.setCursor(xPos, i * 8);  // Die gleiche Y-Position wie oben verwenden
 
             // Wert rechtsbündig ausgeben
-            display.println(STANDARD_SETTING_ITEMS[i].current_value, 3);
+            if (i < 2) {
+                display.println(STANDARD_SETTING_ITEMS[i].current_value, 2);
+            } else if(i == 2) {
+                display.println(STANDARD_SETTING_ITEMS[i].current_value, 1);
+            } else {
+                display.println(STANDARD_SETTING_ITEMS[i].current_value, 3);
+            }
         } else if (settings_active) {
             // Wenn Menüpunkt nicht verstellbar ist, dann zeige nur den Namen an
             display.println(STANDARD_SETTING_ITEMS[i].name);
@@ -266,9 +278,9 @@ void DisplayManager::displayDebugMenu() {
 }
 
 void DisplayManager::displaySpeedmode(){
-    display.drawRoundRect (0, 0, 22, 30,5, SSD1306_WHITE); 
+    display.drawRoundRect (2, 0, 21, 30,5, SSD1306_WHITE); 
     display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe 
-    display.setCursor(3, 5); // Setze den Cursor an den Anfang des Displays 
+    display.setCursor(5, 5); // Setze den Cursor an den Anfang des Displays 
     display.setTextSize(3); // Setze die Textgröße. 
     display.println(mode_parameter.name); 
 }
@@ -281,8 +293,8 @@ void DisplayManager::displaySpeed(){
     current_kmh = current_kmh * -1;
     }
 
-    display.setCursor(24, 18); // Setze den Cursor hinter 'mode'
-    display.setTextSize(7); 
+    display.setCursor(32, 4); // Setze den Cursor hinter 'mode'
+    display.setTextSize(8); 
     int current_kmh_int = current_kmh + 0.5;
     String current_kmh_str;
     if (current_kmh_int < 10){
@@ -299,34 +311,34 @@ void DisplayManager::displayBat(){
 }
 
 void DisplayManager::displayBat(int bat_percent){
-    display.fillRect(115, 0, 6, 2, SSD1306_WHITE);
-    display.drawRoundRect (108, 2, 20, 30,3, SSD1306_WHITE);
+    display.fillRect(9, 32, 6, 2, SSD1306_WHITE);
+    display.drawRoundRect (2, 34, 20, 30,3, SSD1306_WHITE);
 
     if (bat_percent > 80){
-    display.fillRect(110, 6, 16, 5, SSD1306_WHITE);
+    display.fillRect(4, 38, 16, 5, SSD1306_WHITE);
     }
     if (bat_percent > 60){
-    display.fillRect(110, 12, 16, 5, SSD1306_WHITE);
+    display.fillRect(4, 44, 16, 5, SSD1306_WHITE);
     }
     if (bat_percent > 40){
-    display.fillRect(110, 18, 16, 5, SSD1306_WHITE);
+    display.fillRect(4, 50, 16, 5, SSD1306_WHITE);
     }
     if (bat_percent > 20){
-    display.fillRect(110, 24, 16, 5, SSD1306_WHITE);
+    display.fillRect(4, 56, 16, 5, SSD1306_WHITE);
     }
-    display.setCursor(108, 34); // Setze den Cursor hinter 'mode'
+    display.setCursor(3, 36); // Setze den Cursor hinter 'mode'
     display.setTextSize(1); 
     display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
-    display.println(String(int(bat_voltage + 0.5)) + "V");
+    //display.println(String(int(bat_voltage + 0.5)) + "V");
 }
 
 void DisplayManager::displayVBatLowError(){
     display.clearDisplay(); // Lösche Displayinhalt
-    display.setCursor(0, 0); // Setze den Cursor hinter 'mode'
+    display.setCursor(10, 6); // Setze den Cursor hinter 'mode'
     display.setTextSize(2); 
     display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe
-    display.println("Batterie");
-    display.print("leer");
+    display.println("Akku leer"); // Setze Text
+    //display.print("   leer");
     if (low_voltage_blink == false){
     displayBat(21);
     low_voltage_blink = true;
