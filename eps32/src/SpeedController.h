@@ -27,6 +27,9 @@ class SpeedController {
     // Gibt den aktuellen Steuerungsmodus zurück
     ControlMode getControlMode() { return current_control_mode; }
 
+    // Berechne den Geschwindigkeitsmodus anhand der Pedalen beim Start
+    void calculateSpeedMode();
+
     // Setze den p-PID Gain
     void setVelocityGain(float gain) { velocity_gain = gain; }
 

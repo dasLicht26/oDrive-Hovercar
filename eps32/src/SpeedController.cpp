@@ -85,6 +85,23 @@ void SpeedController::stopCar() {
     }
 }
 
+void SpeedController::calculateSpeedMode(){
+    // Setze Speedmode je nach gedrückter Pedale
+    int fw_pedal = getHallMappedValue(HALL_FW_PIN);
+    int bw_pedal = getHallMappedValue(HALL_BW_PIN);
+    if (fw_pedal < HALL_RESOLUTION/2 && bw_pedal < HALL_RESOLUTION/2) {
+        setSpeedMode(MODE_1);
+    } else if (fw_pedal > HALL_RESOLUTION/2 && bw_pedal < HALL_RESOLUTION/2) {
+        setSpeedMode(MODE_2);
+    } else if (fw_pedal < HALL_RESOLUTION/2 && bw_pedal > HALL_RESOLUTION/2) {
+        setSpeedMode(MODE_3);
+    } else if (fw_pedal > HALL_RESOLUTION/2 && bw_pedal > HALL_RESOLUTION/2) {
+        setSpeedMode(MODE_4);
+    } else {
+        setSpeedMode(STANDARD_SPEED_MODE);
+    }
+}
+
 
 void SpeedController::hardwareStartUpCheck(){
     // Local Debugging --> überspringe ODrive-Initialisierung

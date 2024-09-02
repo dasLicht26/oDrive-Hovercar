@@ -39,6 +39,9 @@ void setup() {
     // Check ob oDrive ready ist und Batterie ausreichend geladen 
     speedController.hardwareStartUpCheck();
 
+    // Setze Geschwindigkeitsmodus 
+    speedController.calculateSpeedMode();
+
     // checke ob Debug-Modus aktiviert wird
     if(!digitalRead(BUTTON_OK) && !digitalRead(BUTTON_DOWN)){
       DEBUG_MODE_AKIV = true;
@@ -47,8 +50,6 @@ void setup() {
 
 
 void loop() {
-  delay(50);
-
   // Knopfstatus lesen
   button_ok = !digitalRead(BUTTON_OK);
   button_up = !digitalRead(BUTTON_UP);
@@ -65,15 +66,7 @@ void loop() {
       button_down = (input == '3');
 
   }
-  //Test
-  /*
-  Serial.print("button_ok:" );
-  Serial.println(button_ok);
-  Serial.print("button_up:" );
-  Serial.println(button_up);
-  Serial.print("button_down:" );
-  Serial.println(button_down);
-  */
+
   
   // Lese Knopfinput und aktualisiere Menü
   displayManager.handleInput(button_ok, button_up, button_down);
