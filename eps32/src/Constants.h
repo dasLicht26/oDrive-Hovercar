@@ -59,7 +59,6 @@ struct ODriveErrors {
     String source;
 };
 
-bool idle_break = false; // ob im stillstehenden Zustand gebremst wird
 
 //Kontroll Modi
 enum ControlMode { 

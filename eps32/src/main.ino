@@ -27,7 +27,11 @@ bool buttonOK;
 bool buttonUP;
 bool buttonDOWN;
 
-bool debug_mode = false;
+bool debug_mode = false; // ob der DebugModus aktiv ist
+
+bool idle_break = false; // ob im stillstehenden Zustand gebremst wird
+
+float bat_voltage; // Batteriespannung
 
 void setup() {
    
@@ -59,7 +63,6 @@ void setup() {
     //speedController.saveODriveConfig();
 
     // checke nach Debug-Modus
-    
     buttonUP = !digitalRead(BUTTON_UP);
     buttonDOWN = !digitalRead(BUTTON_DOWN);
     if (buttonDOWN && !buttonUP) {
@@ -73,10 +76,11 @@ void loop() {
   buttonUP = !digitalRead(BUTTON_UP);
   buttonDOWN = !digitalRead(BUTTON_DOWN);
 
-  // Menü aktualisieren
+  // Menü aktualisieren (nur im Debug-Modus)
   if (debug_mode){
     displayManager.updateMenu(buttonOK, buttonUP, buttonDOWN, speedController, configManager, odrive);
   };
+
   // Lese Fehlerliste von ODrive
   odrive_errors = speedController.getErrors();
   errorCount = odrive_errors.size();
@@ -90,64 +94,23 @@ void loop() {
     }
   }
 
-  speedController.updateEngine();
+  // setze Geschwindigkeit
+  speedController.updateEngine(idle_break);
 
-
-  /*
-  // setze odrive Watchdog-Timer zurück, wenn dieser nicht alle 0.8 Sekunden zurückgesetzt wird, gehen die Motoren in Notaus (Falls es ein Verbindungsabbruch gibt)
-  odrive.resetWatchdog(0); // Setze Watchdog Axis 0 zurück 
-  //odrive.resetWatchdog(1); // Setze Watchdog Axis 0 zurück 
 
   // lese Batteriespannung
-  float vBat =  odrive.getParameterAsFloat("vbus_voltage");
-  int vBatPercent = map(vBat, V_BAT_MIN, V_BAT_MAX, 0, 100);
+  float bat_voltage =  odrive.getParameterAsFloat("vbus_voltage");
 
   // checke ob Batteriespannung i.O. ist
-    if(vBat <= V_BAT_MIN) {
-      odrive.setVelocity(0.0); // Bremse auf 0
-      displayManager.vBatLowError(vBat); // Endlosschleife -> Batterie leer
-    return; // Breche den Loop ab
+  if(bat_voltage <= V_BAT_MIN) {
+    odrive.setVelocity(0.0); // Bremse auf 0
+    displayManager.setMenuState(ERROR_LOW_VOLTAGE); // Endlosschleife -> Batterie leer
+    // Blockiert den Loop, bis die Batterie wieder aufgeladen wurde.
+    while (true) {
+      delay(1000);
+    }
   }
-
-  // lese aktuelle Geschwindigkeit der angeforderten und tatsächlichen KMH/RPS
-  float odriveRPS0 =  odrive.getParameterAsFloat("axis0.encoder.vel_estimate");
-  float odriveRPS1 =  odrive.getParameterAsFloat("axis1.encoder.vel_estimate");
-  float odriveRPS = (odriveRPS1 + odriveRPS0)/2; // Geschwindigkeitsmittel der zwei Räder
-  float odriveKMH = speedController.convertRPStoKMh(odriveRPS);
- 
-  float amp = odrive.getParameterAsFloat("axis0.motor.current_control.Iq_measured") + odrive.getParameterAsFloat("axis1.motor.current_control.Iq_measured"); // aktuelle amp
-  float nm = amp * odrive.getParameterAsFloat("axis0.motor.config.torque_constant"); // nm
-  
-  
-  float requestRPS = speedController.getRequestedRPS();
-  float requestNM = speedController.getRequestedNm();
-
-  float maxRps = speedController.convertKMHtoRPS(maxKmh);
-
-  float requestKMH = speedController.convertRPStoKMh(requestRPS);
-
-
-
-
-
-
-
-  Serial.print("current_nm:");
-  Serial.println(requestNM);
-
-  //Serial.print("  1:");
-  //Serial.print(odrive.getParameterAsString("axis1.motor.config.current_lim_margin"));
-
-  //Serial.print("     vg");
-
-  //Serial.print(odrive.getParameterAsString("axis1.controller.config.vel_gain"));
-  //Serial.print("     vig");
-  //Serial.println(odrive.getParameterAsString("axis1.controller.config.vel_integrator_gain"));
-
-  odrive.setTorque(requestNM);
-  */
-
-  //Serial.print(buttenInputString);                       
-  }
+           
+}
 
 

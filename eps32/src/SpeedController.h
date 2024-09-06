@@ -17,12 +17,12 @@ class SpeedController {
     }
 
     // steuert das Motorverhalten im entsprechenden Modus
-    void updateEngine() {
+    void updateEngine(bool idle_break) {
         if (odrive != nullptr) {
             requested_rps = getRequestedRPS();
             current_rps = getCurrentVelocity();
 
-            if (idle_break == false){
+            if (idle_break){
                 idleControl();
             }
             
