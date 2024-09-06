@@ -3,8 +3,7 @@
 #define ODriveUART_h
 
 #include "Arduino.h"
-#include "ODriveEnums.h"
-#include "Constants.h"
+#include "Config.h"
 
 struct ODriveFeedback {
     float pos;
@@ -72,6 +71,10 @@ public:
      */
     void setVelocityIntegratorGain(float velocity_integrator_gain);
 
+    float getVelocityGain();
+
+    float getVelocityIntegratorGain();
+
     /**
      * @brief axis.controller.config.control_mode
      */
@@ -132,7 +135,7 @@ public:
 private:
     String readLine(unsigned long timeout_ms = 30);
 
-    Stream& serial_;
+    Stream& odrive_serial_;
 };
 
 #endif //ODriveUART_h

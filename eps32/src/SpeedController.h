@@ -2,302 +2,139 @@
 #define SpeedControler_h
 #include <cmath> // Für M_PI
 #include <Arduino.h>
-#include "Constants.h"
+#include "Config.h"
 #include "ODriveUART.h"
+#include "EEPROMSettings.h"
 #include <vector>
 #include <string>
 
 
 class SpeedController {
   public:
-    SpeedController() : odrive(nullptr){} // setze Standardwerte
+    SpeedController() : odrive(nullptr), current_speed_mode(STANDARD_SPEED_MODE),current_control_mode(STANDARD_CONTROL_MODE){} // setze Standardwerte
+  
+    void setSpeedMode(SpeedMode mode) { current_speed_mode = mode;}
 
-    void setSpeedMode(SpeedMode mode) {
-        current_speed_mode = mode;
-    }
+    // Gibt den aktuellen Geschwindigkeitsmodus zurück
+    SpeedMode getSpeedMode() { return current_speed_mode;}
 
-    // steuert das Motorverhalten im entsprechenden Modus
-    void updateEngine(bool idle_break) {
-        if (odrive != nullptr) {
-            requested_rps = getRequestedRPS();
-            current_rps = getCurrentVelocity();
+    // Gibt die Parameter des aktuellen Geschwindigkeitsmodus zurück
+    SpeedModeParameter getSpeedModeParameter() { return modiParameter[current_speed_mode]; }
 
-            if (idle_break){
-                idleControl();
-            }
-            
-            switch (getControlMode()) {
-                case TORQUE_CONTROL: {
-                    odrive->setTorque(getRequestedNm());
-                    break;
-                }
-                case VELOCITY_CONTROL: {
-                    setTargetRPS(requested_rps);
-                    break;
-                }
-            }
-        }
-    }
+    // Setze den Steuerungsmodus
+    void setControlMode(ControlMode mode) { current_control_mode = mode; }
 
-    SpeedMode getSpeedMode() {
-        return current_speed_mode;
-    }
+    // Gibt den aktuellen Steuerungsmodus zurück
+    ControlMode getControlMode() { return current_control_mode; }
 
-    SpeedModeParameter getSpeedModeParameter() {
-        return modiParameter[current_speed_mode];
-    }
+    // Berechne den Geschwindigkeitsmodus anhand der Pedalen beim Start
+    void calculateSpeedMode();
 
-    void setControlMode(ControlMode mode) {
-        current_control_mode = mode;
-    }
+    // Setze den p-PID Gain
+    void setVelocityGain(float gain) { velocity_gain = gain; }
 
-    ControlMode getControlMode() {
-        return current_control_mode;
-    }
+    // Gibt die aktuelle Batteriespannung zurück
+    float getBatteryVoltage() { return odrive->getParameterAsFloat("vbus_voltage"); }
 
-    void setVelocityGain(float gain) {
-        velocity_gain = gain;
-        // Anwenden auf ODrive falls notwendig
-    }
+    // Liefert Nm Anstiegsparameter zurück
+    float getTorqueSlope() { return eeprom->loadTorqueSlope(); }
 
-    float getVelocityGain() {
-        return velocity_gain;
-    }
+    // Liefert Nm Untergrenze zurück
+    float getTorqueMinimum() { return eeprom->loadTorqueMinimum(); }
 
-    void setVelocityIntegratorGain(float gain) {
-        velocity_integrator_gain = gain;
-        // Anwenden auf ODrive falls notwendig
-    }
+    // Setze Nm Anstiegsparameter
+    void setTorqueSlope(float slope) { eeprom->saveTorqueSlope(slope); }
 
-    float getVelocityIntegratorGain() {
-        return velocity_integrator_gain;
-    }
+    // Setze Nm Untergrenze
+    void setTorqueMinimum(float minimum) { eeprom->saveTorqueMinimum(minimum); }
 
+    // Berechne das Drehmoment in Nm anhand der rps um die Geschwindigkeit gleichmäßig zu steigern (Kein Ruck beim Anfahren)
+    float calculateTorque(float velocity_rps);
 
-    void setODrive(ODriveUART* odriveInstance) {
-        odrive = odriveInstance;
-    }
+    // Gibt den Batterieprozentsatz zurück
+    int getBatteryPercentage() { return map(getBatteryVoltage(), V_BAT_MIN, V_BAT_MAX, 0, 100); }
+
+    // Gibt an ob Spannungs Untergrenze erreicht ist
+    bool isBatteryLow() { return getBatteryVoltage() < V_BAT_MIN; }
+
+    // Gibt den aktuellen p-PID Gain zurück
+    float getVelocityGain() { if (!LOCAL_DEBUG){ return odrive->getVelocityGain();} else {return 1.5;} }
+
+    // Gibt den aktuellen i-PID Integrator Gain zurück
+    float getVelocityIntegratorGain() { if (!LOCAL_DEBUG){return odrive->getVelocityIntegratorGain();} else {return 2.5;} }
+
+    // Setze den Integrator Gain
+    void setVelocityIntegratorGain(float gain) { velocity_integrator_gain = gain; }
+
+    // ODrive Instanz setzen
+    void setODrive(ODriveUART* odriveInstance) { odrive = odriveInstance; }
+
+    // Eeprom Instanz setzen
+    void setEeprom(EepromSettings* eepromInstance) { eeprom = eepromInstance; }
 
     // Aktuelle Batterielast auslesen in Ampere
-    float getVBusCurrent() {
-      float amper = odrive->getParameterAsFloat("axis0.motor.current_control.Iq_measured") + odrive->getParameterAsFloat("axis1.motor.current_control.Iq_measured"); // aktuelle amp
-      return amper;
-    }
+    float getVBusCurrent();
 
-    // ODrive initialisieren/setup -> Ändert die Konfig dauerhaft
-    void saveODriveConfig() {
-        if (odrive != nullptr) {
-            odrive->clearErrors();
-            odrive->setVelocityGain(velocity_gain); // Proportionaler Anteil p-PID
-            odrive->setVelocityIntegratorGain(velocity_integrator_gain);  // Integratoranteil i-PID
+    // Geschwindigkeit aktualisieren
+    void updateSpeed();
 
-            switch (getControlMode()){
-                case TORQUE_CONTROL: {
-                    odrive->setParameter("axis0.controller.config.control_mode", "TORQUE_CONTROL");
-                    odrive->setParameter("axis1.controller.config.control_mode", "TORQUE_CONTROL");
-                    break;
-                }
-                case VELOCITY_CONTROL: {
-                    odrive->setParameter("axis0.controller.config.control_mode", "VELOCITY_CONTROL");
-                    odrive->setParameter("axis1.controller.config.control_mode", "VELOCITY_CONTROL");
-                    break;
-                }
-            }
-
-            odrive->saveConfig();
-            odrive->reboot();
-        }
-    }
-
-    void setOdriveBaseConfig() {
-        if (odrive != nullptr) {
-            odrive->setParameter("axis0.motor.config.current_lim", BAT_MAX_CURRENT/2);
-            odrive->setParameter("axis1.motor.config.current_lim", BAT_MAX_CURRENT/2);
-
-            odrive->setParameter("axis0.motor.config.current_lim_margin", BAT_MAX_CURRENT_MARGIN/2);
-            odrive->setParameter("axis1.motor.config.current_lim_margin", BAT_MAX_CURRENT_MARGIN/2);
-            
-            odrive->saveConfig();
-            odrive->reboot();
-        }
-    }
-
-
-    // Alle Bewegungen stoppen
-    void stopAll() {
-        if (odrive != nullptr) {
-            odrive->setState(AXIS_STATE_IDLE, 0);
-            odrive->setState(AXIS_STATE_IDLE, 1);
-        }
-    }
-
-    void hardwareStartUpCheck(){
-        // Batterie check
-        while(odrive->getParameterAsFloat("vbus_voltage") == 0.0){
-            delay(30);
-        }
-        float vBat = odrive->getParameterAsFloat("vbus_voltage");
-        if(vBat <= V_BAT_MIN_START) {
-            // displayManager.vBatLowError(vBat); // Endlosschleife -> Batterie leer
-        }
-        // Warte bis odrive hochgefahren ist und State nicht mehr "undefined" ist
-        while (odrive->getState(0) == AXIS_STATE_UNDEFINED) {
-            delay(30);
-        }
-        // Warte bis odrive hochgefahren ist und State nicht mehr "undefined" ist
-        while (odrive->getState(1) == AXIS_STATE_UNDEFINED) {
-            delay(30);
-        }
-
-        // setze Axis0 in Closed_loop (externen Steuerungsmodus)
-        while (odrive->getState(0) != AXIS_STATE_CLOSED_LOOP_CONTROL) { 
-            odrive->setState(AXIS_STATE_CLOSED_LOOP_CONTROL, 0);
-            delay(10);
-        }
-
-        // setze Axis1 in Closed_loop (externen Steuerungsmodus)
-        while (odrive->getState(1) != AXIS_STATE_CLOSED_LOOP_CONTROL) { 
-            odrive->setState(AXIS_STATE_CLOSED_LOOP_CONTROL, 1);
-            delay(10);
-        }
-
-        odrive->setParameter("axis0.config.enable_watchdog", true);
-        odrive->setParameter("axis1.config.enable_watchdog", true);
-
-    }
+    // ODrive initialisieren/setup -> Ändert die oDrive Konfig dauerhaft
+    void saveODriveConfig();
     
+    // Motorsteuerung deaktivieren -> Setzt den Motor in den Idle-Modus
+    void stopMotorControl();
 
-    // Idle-Kontrolle --> Setzte AXIS_STATE_CLOSED_LOOP_CONTROL auf 0 wenn das Car stehen bleibt (man kann es dadurch schieben) 
-    void idleControl() {
-        if (odrive != nullptr) {
-            if (current_rps == 0 && fabs(requested_rps) == 0) {
-                if (odrive->getState(0) != AXIS_STATE_IDLE) {
-                    odrive->setState(AXIS_STATE_IDLE, 0);
-                    odrive->setState(AXIS_STATE_IDLE, 1);
-                    delay(30);
-                }
-            }
-            else if(requested_rps >= 0.2) {
-                if (odrive->getState(0) != AXIS_STATE_CLOSED_LOOP_CONTROL) {
-                    odrive->setState(AXIS_STATE_CLOSED_LOOP_CONTROL, 0);
-                    odrive->setState(AXIS_STATE_CLOSED_LOOP_CONTROL, 1);
-                    delay(30);
-                }
-            }
-        }
-    }
+    // Motorsteuerung aktivieren -> Setzt den Motor in den Closed-Loop-Modus
+    void startMotorControl();
+
+    // setzte automatisch Vorwärts/Rückwerts Modus (MODE_R wird nur bei Stillstand aktiviert)
+    void updateDirectionMode();
+
+    // Bringe das Auto zum Stillstand -> Bremse bis Stillstand, Alle Eingaben (Gas/Bremse) sind bis absoluten Stillstand deaktiviert.
+    void stopCar();
+
+    // Starte Hardware und überprüfe ob alles korrekt ist (z.B. ODrive verbunden, Batterie geladen, Leerer Fehlerspeicher, etc)
+    void hardwareStartUpCheck();
 
     // Fehlerkontrolle, liefert eine Listen/struct mit Fehlern zurück
-    std::vector<ODriveErrors> getErrors() {
-    	std::vector<ODriveErrors> odrive_errors; // Liste mit fehlern
-
-        if (odrive != nullptr) {
-            int systemError = odrive->getParameterAsInt("error");
-            if (systemError != 0) {
-                ODriveErrors a = {systemError, "System"};
-                odrive_errors.push_back(a);
-            }
-
-            int axis0Error = odrive->getParameterAsInt("axis0.error");
-            if (axis0Error != 0) {
-                ODriveErrors b = {axis0Error, "Axis0"};
-                odrive_errors.push_back(b);
-            }
-
-            int axis1Error = odrive->getParameterAsInt("axis1.error");
-            if (axis1Error != 0) {
-                ODriveErrors c = {axis1Error, "Axis1"};
-                odrive_errors.push_back(c);
-            }
-        }
-
-        return odrive_errors;
-    }
+    std::vector<ODriveErrors> getErrors();
 
     // Aktuelle Geschwindigkeit auslesen in RPS
-    float getCurrentVelocity() {
-        if (odrive != nullptr) {
-            float vel_axis0 = odrive->getParameterAsFloat("axis0.encoder.vel_estimate");
-            float vel_axis1 = odrive->getParameterAsFloat("axis1.encoder.vel_estimate");
-            return (vel_axis0 + vel_axis1) / 2.0; // Durchschnittsgeschwindigkeit der beiden Achsen
-        }
-        return 0.0;
-    }
+    float getCurrentVelocity();
 
     // Zielgeschwindigkeit setzen in RPS
-    void setTargetRPS(float velocity) {
-        if (odrive != nullptr) {
-            odrive->setVelocity(velocity);
-        }
-    }
+    void setTargetVelocity(float velocity);
 
     // Zielgeschwindigkeit auslesen in RPS aus Pedalen
-    float getRequestedRPS() {
-        SpeedModeParameter mode = modiParameter[current_speed_mode];
-        int hallValue = getHallMappedValue(HALL_FW_PIN) - getHallMappedValue(HALL_BW_PIN);
-        float maxRPS = convertKMHtoRPS(mode.maxSpeed);
-
-        float toReturn = map(hallValue, 0, HALL_RESOLUTION, 0, maxRPS*100); 
-        return toReturn/100; 
-    }
+    float getRequestedRPS();
 
     // gibt die aktuelle angeforderte Geschwindigkeit in km/h zurück
-    float getRequestedKMH() {
-        return convertRPStoKMh(getRequestedRPS());
-    }
+    float getRequestedKMH(){ return convertRPStoKMh(getRequestedRPS()); }
 
     // gibt die aktuelle Geschwindigkeit in km/h zurück
-    float getCurrentKMH() {
-        return convertRPStoKMh(getCurrentVelocity());
-    }
+    float getCurrentKMH(){return convertRPStoKMh(getCurrentVelocity()); }
 
     // gibt das aktuelle angeforderte Drehmoment in Nm zurück
-    float getRequestedNm() {
-        SpeedModeParameter mode = modiParameter[current_speed_mode];
-        int hallValue = getHallMappedValue(HALL_FW_PIN) - getHallMappedValue(HALL_BW_PIN);
-        float maxNM = mode.maxTorque;
+    float getRequestedNm();
 
-        float toReturn = map(hallValue, 0, HALL_RESOLUTION, 0, maxNM*100); 
-        return toReturn/100; 
-    }
+    // gibt das aktuelle Drehmoment in Nm zurück
+    float getCurrentNM();
 
-    float getCurrentNM() {
-        return getVBusCurrent() * odrive->getParameterAsFloat("axis0.motor.config.torque_constant");
-    }
+    // Konvertiere RPS in km/h
+    float convertRPStoKMh(float RPS);
 
-    float convertRPStoKMh(float RPS) {
-        float radiusM = RADIUSCM / 100.0; // Konvertiere cm in m
-        float circumferenceM  = M_PI * radiusM; // Berechne den Umfang in Metern
-        float speedMS = circumferenceM * RPS; // m/s
-        return speedMS * 3.6 *-1; // Konvertiere m/s in km/h
-    }
-
-    float convertKMHtoRPS(float KMH) {
-        float radiusM = RADIUSCM / 100.0; // Konvertiere cm in m
-        float circumferenceM = M_PI * radiusM; // Berechne den Umfang in Metern
-        float speedMS = KMH / 3.6; // Konvertiere km/h in m/s
-        return speedMS / circumferenceM; // Berechne RPS
-    }
+    // Konvertiere km/h in RPS
+    float convertKMHtoRPS(float KMH);
 
     // Gibt den Hallinput als Wert zwischen 0 und HALL_RESOLUTION (100) zurück
-    int getHallMappedValue(int gpio) {
-        int rawValue = analogRead(gpio);
-        int toReturn = map(rawValue, HALL_ANALOG_MIN, HALL_ANALOG_MAX, 0, HALL_RESOLUTION); // 0.5V und 3.0V auf 0-100 Skala mappen
-
-        // verhinden, dass Werte unter 0 oder über HALL_RESOLUTION zurückgegeben werden
-        if(toReturn <= 0){
-            toReturn = 0;
-        }
-        if(toReturn >= HALL_RESOLUTION){
-            toReturn = HALL_RESOLUTION;
-        }
-        return toReturn; 
-    }
+    int getHallMappedValue(int gpio);
 
   private:
     SpeedMode current_speed_mode; // Aktuell ausgewählter Geschwindigkeitsmodus
+    SpeedMode temp_speed_mode; // Temporärer Geschwindigkeitsmodus -> Wird für Rückwertsgang benötigt
     ControlMode current_control_mode; // Aktuell ausgewählter SteuerungsModus
     ODriveUART* odrive; // Zeiger auf die ODrive Instanz
+    EepromSettings* eeprom; // Zeiger auf die EepromSettings Instanz
     float velocity_gain; // p-PID
     float velocity_integrator_gain; // i-PID
     float requested_rps; // Angeforderte Geschwindigkeit in RPS
