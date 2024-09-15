@@ -254,6 +254,7 @@ void DisplayManager::displayDebugMenu() {
     float current_nm;
     float current_v;
     float current_kmh;
+    float current_rps;
 
     if(speedController == nullptr) {
         display.println("Display Error!");
@@ -265,6 +266,7 @@ void DisplayManager::displayDebugMenu() {
         current_nm = speedController->getCurrentNM();
         current_v = speedController->getBatteryVoltage();
         current_kmh = speedController->getCurrentKMH();
+        current_rps = speedController->getCurrentVelocity();
     } else {
         current_a = 11.2;
         current_nm = 8.4;
@@ -297,21 +299,31 @@ void DisplayManager::displayDebugMenu() {
     // Kmh
     line++;
     display.setCursor(0, line*line_distance);  // Annahme: Jede Zeile ist 8 Pixel hoch, passe dies entsprechend an
-    display.print("Kmh:");
-    display.getTextBounds(String(current_kmh, digits), 0, 0, &x1, &y1, &w, &h); // Breite des Wertes berechnen
+    display.print("RPS:");
+    display.getTextBounds(String(current_rps, digits), 0, 0, &x1, &y1, &w, &h); // Breite des Wertes berechnen
     xPos = display.width() - w; // X-Position berechnen, um den Wert rechtsbündig auszugeben
     display.setCursor(xPos, line * line_distance);  // Die gleiche Y-Position wie oben verwenden
-    display.println(current_kmh, digits); // Wert rechtsbündig ausgeben
+    display.println(current_rps, digits); // Wert rechtsbündig ausgeben
 
 
 }
 
 void DisplayManager::displaySpeedmode(){
+    if (speedController -> getMotorActive() == false){
+        display.fillRoundRect(2, 0, 21, 30,5, SSD1306_WHITE); 
+        display.setTextColor(SSD1306_BLACK); // Setze die Textfarbe 
+        display.setCursor(5, 5); // Setze den Cursor an den Anfang des Displays 
+        display.setTextSize(3); // Setze die Textgröße. 
+        display.println(mode_parameter.name); 
+        display.setTextColor(SSD1306_WHITE);
+    }
+    else{
     display.drawRoundRect (2, 0, 21, 30,5, SSD1306_WHITE); 
     display.setTextColor(SSD1306_WHITE); // Setze die Textfarbe 
     display.setCursor(5, 5); // Setze den Cursor an den Anfang des Displays 
     display.setTextSize(3); // Setze die Textgröße. 
     display.println(mode_parameter.name); 
+    }
 }
 
 void DisplayManager::displaySpeed(){

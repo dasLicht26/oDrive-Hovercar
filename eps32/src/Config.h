@@ -84,6 +84,10 @@ struct SpeedModeParameter {
   float maxTorque;  // Drehmoment in Nm
 };
 
+
+extern float INPUT_REQUESTED_RPS_THRESHOLD; // Schwellwert für die Pedaleingabe -> Darunter wird die Eingabe ignoriert/als 0 interpretiert
+extern float SPEED_OUTPUT_RPS_THRESHOLD; // Schwellwert für die Geschwindigkeit -> Darunter wird die Geschwindigkeit als 0 interpretiert
+
 // Deklaration des externen Arrays mit den Parametern für die Speedmodi
 extern const SpeedModeParameter modiParameter[];
 

@@ -99,8 +99,17 @@ class SpeedController {
     // Fehlerkontrolle, liefert eine Listen/struct mit Fehlern zurück
     std::vector<ODriveErrors> getErrors();
 
+    // aktiviere/deaktiviere Motoren anhand der Pedalen und Geschwindigkeit
+    void udateIdleState();
+
+    // Gibt an ob die Motoren aktiv oder im idle sind
+    bool getMotorActive();
+
     // Aktuelle Geschwindigkeit auslesen in RPS
     float getCurrentVelocity();
+
+    // setze Watchdog zurück
+    void resetWatchdog();
 
     // Zielgeschwindigkeit setzen in RPS
     void setTargetVelocity(float velocity);
@@ -137,7 +146,7 @@ class SpeedController {
     EepromSettings* eeprom; // Zeiger auf die EepromSettings Instanz
     float velocity_gain; // p-PID
     float velocity_integrator_gain; // i-PID
-    float requested_rps; // Angeforderte Geschwindigkeit in RPS
-    float current_rps;
+    float current_ampere; // Aktueller Strom in Ampere
+    bool motor_active = false; // Gibt an ob der Motor aktiv ist
 };
 #endif

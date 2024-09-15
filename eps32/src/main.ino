@@ -20,12 +20,6 @@ bool button_ok;
 bool button_up;
 bool button_down;
 
-bool debug_mode = false; // ob der DebugModus aktiv ist
-
-bool idle_break = false; // ob im stillstehenden Zustand gebremst wird
-
-float bat_voltage; // Batteriespannung
-
 void setup() {
    
     // Setup SerialBus-Controller
@@ -56,6 +50,8 @@ void setup() {
 
 
 void loop() {
+
+  speedController.resetWatchdog();
   // Knopfstatus lesen
   button_ok = !digitalRead(BUTTON_OK);
   button_up = !digitalRead(BUTTON_UP);
@@ -94,13 +90,16 @@ void loop() {
     }
   }
   
+
+
+
   // Lese Batteriespannung --> Wenn Batterie leer, dann blockiere den Loop
   if(speedController.isBatteryLow() && !LOCAL_DEBUG){
     displayManager.setMenuState(ERROR_LOW_VOLTAGE);
     speedController.stopCar();
     speedController.stopMotorControl();
 
-    // Blockiert den Loop, bis die Batterie wieder geladen wurde.
+    // Blockiert den Loop.
     while (true) {
       displayManager.updateDisplay();
     }
@@ -109,6 +108,10 @@ void loop() {
     speedController.updateSpeed(); // Aktualisiere Geschwindigkeit und das aktuelle Verhalten, je nach Input und Modus
   }
   displayManager.updateDisplay(); // Aktualisiere Menü und Display
+
+  // gib input und angeforderten speed aus
+  Serial.println(speedController.getRequestedRPS());
+
                     
 }
 

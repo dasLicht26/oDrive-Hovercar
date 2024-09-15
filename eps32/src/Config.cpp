@@ -36,7 +36,7 @@ const int HALL_RESOLUTION = 100; // Anzahl der Schritte zwischen Pedal gedrückt
 const int V_BAT_MAX = 41; // 100% Ladung der Akkus, Werte darüber werden auf 41 abgeschnitten. (41 Volt)
 const int V_BAT_MIN = 32; // 0% Ladung des Akkus, das HoverCar nimmt kein Gas mehr an wenn es bereits eingeschalten ist (Es bremmst auf 0). (32 Volt)
 const int V_BAT_MIN_START = 34; // Minimale Akkuladung um odrive in AXIS_STATE_CLOSED_LOOP_CONTROL zu versetzen. (darunter lässt sich das HooverCar nicht mehr einschalten) (34 Volt)
-const float BAT_MAX_CURRENT = 24.0; // Maximaler Strom bei Dauerbelastung in Amper (20A)
+const float BAT_MAX_CURRENT = 2.0; // Maximaler Strom bei Dauerbelastung in Amper (20A)
 const float BAT_MAX_CURRENT_MARGIN = 4.0; // Maximaler zusätzlicher Peak in Amper (<1sek) (Passiert durch die PI-Steuerung) (4A)
 
 // Definiere ESP32 GPIO-Pins und UART-Schnittstelle zu oDrive
@@ -61,16 +61,19 @@ SpeedMode STANDARD_SPEED_MODE = MODE_4; // standard Geschwindigkeitsmodus
 MenuState STANDARD_MENUE = MENU_MAIN; // standard Menüzustand (Display)
 
 bool DEBUG_MODE_AKIV = true; // Debugmodus und Settingsmenü sind aktivieren
-bool LOCAL_DEBUG = true; // Lokaler Debugmodus aktivieren  -> Test ohne oDrive und Knöpfe. Eingabe über Serielle Schnittstelle (1=OK, 2=UP, 3=DOWN)
+bool LOCAL_DEBUG = false; // Lokaler Debugmodus aktivieren  -> Test ohne oDrive und Knöpfe. Eingabe über Serielle Schnittstelle (1=OK, 2=UP, 3=DOWN)
 
-// Parameter der einzelnen Speedmodi (Name (für Display), maxSpeed, maxTorque)
+// Parameter der einzelnen Speedmodi (Name (für Display), maxSpeed in kmh, maxTorque in Nm)
 const SpeedModeParameter modiParameter[] = {
   {"1", 5.0, 10.0},
   {"2", 8.0, 6.0},
   {"3", 12.0, 8.0},
   {"4", 16.0, 999.0},
-  {"R", -4.0, 5.0},
+  {"R", 4.0, 5.0},
 };
+
+float INPUT_REQUESTED_RPS_THRESHOLD = 0.07; // Schwellwert für die Pedaleingabe -> Darunter wird die Eingabe ignoriert/als 0 interpretiert
+float SPEED_OUTPUT_RPS_THRESHOLD = 0.08; // Schwellwert für die Geschwindigkeit -> Darunter wird die Geschwindigkeit als 0 interpretiert
 
 
 // Menüpunkte für das Display

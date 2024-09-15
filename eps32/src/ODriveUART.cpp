@@ -159,7 +159,7 @@ String ODriveUART::readLine(unsigned long timeout_ms) {
 
 
     unsigned long timeout_start = millis();
-    delay(10);
+
 
     for (;;) {
         while (!odrive_serial_.available()) {
@@ -167,7 +167,7 @@ String ODriveUART::readLine(unsigned long timeout_ms) {
                 Serial.println("Timeout");
                 return str;
             }
-            delay(3);
+
         }
         char c = odrive_serial_.read();
         if (c == '\n')
