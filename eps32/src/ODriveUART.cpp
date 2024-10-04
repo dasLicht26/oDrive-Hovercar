@@ -22,6 +22,7 @@ void ODriveUART::saveConfig() {
     odrive_serial_.print("ss\n");
 }
 
+
 void ODriveUART::reboot() {
     odrive_serial_.print("sr\n");
 }
