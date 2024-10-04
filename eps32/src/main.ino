@@ -40,10 +40,9 @@ void setup() {
     // Check ob oDrive ready ist und Batterie ausreichend geladen 
     speedController.hardwareStartUpCheck();
 
-    Serial.print("asdw");
     // Setze Geschwindigkeitsmodus 
     speedController.calculateSpeedMode();
-    Serial.print("33");
+
     // aktiviere Watchdog
     speedController.setWatchdogEnabled(true);
 
