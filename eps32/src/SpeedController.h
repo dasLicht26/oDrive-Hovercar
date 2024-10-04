@@ -42,6 +42,9 @@ class SpeedController {
     // Liefert Nm Untergrenze zurück
     float getTorqueMinimum() { return eeprom->loadTorqueMinimum(); }
 
+    // setze Watchodg aktiv
+    void setWatchdogEnabled(bool enabled);
+
     // Setze Nm Anstiegsparameter
     void setTorqueSlope(float slope) { eeprom->saveTorqueSlope(slope); }
 

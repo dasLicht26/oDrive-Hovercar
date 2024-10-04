@@ -132,8 +132,8 @@ float ODriveUART::getVelocityGain(){
 
 float ODriveUART::getVelocityIntegratorGain(){
     float gain = 0.0;
-    gain += getParameterAsFloat("axis0.controller.config.velocity_integrator_gain");
-    gain += getParameterAsFloat("axis1.controller.config.velocity_integrator_gain");
+    gain += getParameterAsFloat("axis0.controller.config.vel_integrator_gain");
+    gain += getParameterAsFloat("axis1.controller.config.vel_integrator_gain");
     return gain/2;
 }
 

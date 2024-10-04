@@ -29,18 +29,26 @@ void setup() {
     eepromSettings.setup(); // Initialisiere EPROM Speicher
     speedController.setODrive(&odrive); // übergebe Zeiger auf ODrive-Objekt an SpeedController
     speedController.setEeprom(&eepromSettings); // übergebe Zeiger auf EepromSettings-Objekt an SpeedController
-    displayManager.setSpeedController(&speedController); // übergebe Zeiger auf SpeedController-Objekt an DisplayManager
 
     // Initialisiere HardwareButtons
     pinMode(BUTTON_UP, INPUT_PULLUP); 
     pinMode(BUTTON_DOWN, INPUT_PULLUP); 
     pinMode(BUTTON_OK, INPUT_PULLUP); 
 
+    speedController.setWatchdogEnabled(false);
+
     // Check ob oDrive ready ist und Batterie ausreichend geladen 
     speedController.hardwareStartUpCheck();
 
+    Serial.print("asdw");
     // Setze Geschwindigkeitsmodus 
     speedController.calculateSpeedMode();
+    Serial.print("33");
+    // aktiviere Watchdog
+    speedController.setWatchdogEnabled(true);
+
+    // Setze DisplayManager auf Mainmenü
+    displayManager.setSpeedController(&speedController); // übergebe Zeiger auf SpeedController-Objekt an DisplayManager
 
     // checke ob Debug-Modus aktiviert wird
     if(!digitalRead(BUTTON_OK) && !digitalRead(BUTTON_DOWN)){

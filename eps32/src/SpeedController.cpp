@@ -104,6 +104,7 @@ void SpeedController::saveODriveConfig() {
 // Alle Bewegungen stoppen
 void SpeedController::stopMotorControl() {
     if (odrive != nullptr) {
+        setTargetVelocity(0.0);
         odrive->setState(AXIS_STATE_IDLE, 0);
         odrive->setState(AXIS_STATE_IDLE, 1);
     }
@@ -136,6 +137,18 @@ void SpeedController::calculateSpeedMode(){
     } else {
         setSpeedMode(STANDARD_SPEED_MODE);
     }
+    bool is_input = true;
+    int input = 0;
+    while (is_input)
+    {   
+        input = getHallMappedValue(HALL_FW_PIN) + getHallMappedValue(HALL_BW_PIN);
+        if (input < 5) {
+            is_input = false;
+        } 
+        Serial.print(is_input);
+        delay(300);
+    }
+    
 }
 
 
@@ -148,6 +161,7 @@ void SpeedController::hardwareStartUpCheck(){
     // Check ob ODrive verbunden ist, dazu wird eine einfache Abfrage gesendet
     while(odrive->getParameterAsFloat("vbus_voltage") == 0.0){
         delay(30);
+        setWatchdogEnabled(false);
     }
     float vBat = odrive->getParameterAsFloat("vbus_voltage");
     if(vBat <= V_BAT_MIN_START) {
@@ -164,9 +178,14 @@ void SpeedController::hardwareStartUpCheck(){
 
     motor_active = false;
 
-    odrive->setParameter("axis0.config.enable_watchdog", true);
-    odrive->setParameter("axis1.config.enable_watchdog", true);
+}
 
+
+void SpeedController::setWatchdogEnabled(bool enabled){
+    if (odrive != nullptr) {
+        odrive->setParameter("axis0.config.enable_watchdog", enabled);
+        odrive->setParameter("axis1.config.enable_watchdog", enabled);
+    }
 }
 
 void SpeedController::resetWatchdog(){

@@ -6,7 +6,7 @@ void DisplayManager::displayBootlogo() {
     display.clearDisplay();
     display.drawBitmap( 0, 0, hoverLogo, SCREEN_WIDTH, SCREEN_HEIGHT, WHITE); // Lade Bootlogo
     display.display();
-    delay(2000); // Zeige Bootlogo für 2 Sekunden
+    delay(1000); // Zeige Bootlogo für 2 Sekunden
 }
 
 // setze aktuellen Menüzustand (z.B. bei Fehler)
