@@ -3,7 +3,7 @@
 
 #include <EEPROM.h>
 #include "SpeedController.h"
-#include "config.h"
+#include "Config.h"
 
 struct Settings {
     SpeedMode speedMode;
@@ -49,6 +49,51 @@ class EepromSettings {
       }
 
       return nm_minimum;
+    }
+
+    void saveThrottleCurveExponent(float exponent) {
+      EEPROM.put(8, exponent);
+      EEPROM.commit();
+    }
+
+    float loadThrottleCurveExponent() {
+      float exponent;
+      EEPROM.get(8, exponent);
+      if (isnan(exponent) || exponent < 0.8 || exponent > 3.0) {
+        exponent = THROTTLE_CURVE_EXPONENT;
+        saveThrottleCurveExponent(exponent);
+      }
+      return exponent;
+    }
+
+    void saveThrottleLinearBlend(float blend) {
+      EEPROM.put(12, blend);
+      EEPROM.commit();
+    }
+
+    float loadThrottleLinearBlend() {
+      float blend;
+      EEPROM.get(12, blend);
+      if (isnan(blend) || blend < 0.0 || blend > 1.0) {
+        blend = THROTTLE_LINEAR_BLEND;
+        saveThrottleLinearBlend(blend);
+      }
+      return blend;
+    }
+
+    void saveThrottleSmoothingAlpha(float alpha) {
+      EEPROM.put(16, alpha);
+      EEPROM.commit();
+    }
+
+    float loadThrottleSmoothingAlpha() {
+      float alpha;
+      EEPROM.get(16, alpha);
+      if (isnan(alpha) || alpha < 0.05 || alpha > 1.0) {
+        alpha = THROTTLE_SMOOTHING_ALPHA;
+        saveThrottleSmoothingAlpha(alpha);
+      }
+      return alpha;
     }
 
 };

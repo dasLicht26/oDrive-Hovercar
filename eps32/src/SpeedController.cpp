@@ -9,6 +9,72 @@ float SpeedController::getVBusCurrent() {
     return amper;
 }
 
+void SpeedController::reloadSettingsMenuValues() {
+    if (LOCAL_DEBUG) {
+        STANDARD_SETTING_ITEMS[0].current_value = 1.5f;
+        STANDARD_SETTING_ITEMS[1].current_value = 2.5f;
+    } else if (odrive != nullptr) {
+        STANDARD_SETTING_ITEMS[0].current_value = getVelocityGain();
+        STANDARD_SETTING_ITEMS[1].current_value = getVelocityIntegratorGain();
+    }
+    STANDARD_SETTING_ITEMS[2].current_value = getTorqueMinimum();
+    STANDARD_SETTING_ITEMS[3].current_value = getTorqueSlope();
+    STANDARD_SETTING_ITEMS[4].current_value = THROTTLE_CURVE_EXPONENT;
+    STANDARD_SETTING_ITEMS[5].current_value = THROTTLE_LINEAR_BLEND;
+    STANDARD_SETTING_ITEMS[6].current_value = THROTTLE_SMOOTHING_ALPHA;
+}
+
+void SpeedController::loadSavedSettings() {
+    if (eeprom == nullptr) {
+        return;
+    }
+
+    STANDARD_SETTING_ITEMS[2].current_value = eeprom->loadTorqueMinimum();
+    STANDARD_SETTING_ITEMS[3].current_value = eeprom->loadTorqueSlope();
+    THROTTLE_CURVE_EXPONENT = eeprom->loadThrottleCurveExponent();
+    THROTTLE_LINEAR_BLEND = eeprom->loadThrottleLinearBlend();
+    THROTTLE_SMOOTHING_ALPHA = eeprom->loadThrottleSmoothingAlpha();
+    STANDARD_SETTING_ITEMS[4].current_value = THROTTLE_CURVE_EXPONENT;
+    STANDARD_SETTING_ITEMS[5].current_value = THROTTLE_LINEAR_BLEND;
+    STANDARD_SETTING_ITEMS[6].current_value = THROTTLE_SMOOTHING_ALPHA;
+}
+
+void SpeedController::applyRuntimeSettings() {
+    float throttleCurve = STANDARD_SETTING_ITEMS[4].current_value;
+    float throttleBlend = STANDARD_SETTING_ITEMS[5].current_value;
+    float throttleSmoothing = STANDARD_SETTING_ITEMS[6].current_value;
+
+    if (throttleCurve < 0.8f) {
+        throttleCurve = 0.8f;
+    } else if (throttleCurve > 3.0f) {
+        throttleCurve = 3.0f;
+    }
+
+    if (throttleBlend < 0.0f) {
+        throttleBlend = 0.0f;
+    } else if (throttleBlend > 1.0f) {
+        throttleBlend = 1.0f;
+    }
+
+    if (throttleSmoothing < 0.05f) {
+        throttleSmoothing = 0.05f;
+    } else if (throttleSmoothing > 1.0f) {
+        throttleSmoothing = 1.0f;
+    }
+
+    STANDARD_SETTING_ITEMS[4].current_value = throttleCurve;
+    STANDARD_SETTING_ITEMS[5].current_value = throttleBlend;
+    STANDARD_SETTING_ITEMS[6].current_value = throttleSmoothing;
+    THROTTLE_CURVE_EXPONENT = throttleCurve;
+    THROTTLE_LINEAR_BLEND = throttleBlend;
+    THROTTLE_SMOOTHING_ALPHA = throttleSmoothing;
+
+    if (!LOCAL_DEBUG && odrive != nullptr) {
+        odrive->setVelocityGain(STANDARD_SETTING_ITEMS[0].current_value);
+        odrive->setVelocityIntegratorGain(STANDARD_SETTING_ITEMS[1].current_value);
+    }
+}
+
 // Geschwindigkeit aktualisieren
 void SpeedController::updateSpeed(){
     updateDirectionMode();
@@ -64,8 +130,12 @@ void SpeedController::udateIdleState(){
 // ODrive initialisieren/setup -> Ändert die Konfig dauerhaft
 void SpeedController::saveODriveConfig() {
     
+    applyRuntimeSettings();
     eeprom->saveTorqueSlope(STANDARD_SETTING_ITEMS[3].current_value);
     eeprom->saveTorqueMinimum(STANDARD_SETTING_ITEMS[2].current_value);
+    eeprom->saveThrottleCurveExponent(STANDARD_SETTING_ITEMS[4].current_value);
+    eeprom->saveThrottleLinearBlend(STANDARD_SETTING_ITEMS[5].current_value);
+    eeprom->saveThrottleSmoothingAlpha(STANDARD_SETTING_ITEMS[6].current_value);
 
     if (LOCAL_DEBUG) {
         return;
@@ -79,13 +149,13 @@ void SpeedController::saveODriveConfig() {
 
         switch (getControlMode()){
             case TORQUE_CONTROL: {
-                odrive->setParameter("axis0.controller.config.control_mode", "TORQUE_CONTROL");
-                odrive->setParameter("axis1.controller.config.control_mode", "TORQUE_CONTROL");
+                odrive->setParameter("axis0.controller.config.control_mode", String((long)CONTROL_MODE_TORQUE_CONTROL));
+                odrive->setParameter("axis1.controller.config.control_mode", String((long)CONTROL_MODE_TORQUE_CONTROL));
                 break;
             }
             case VELOCITY_CONTROL: {
-                odrive->setParameter("axis0.controller.config.control_mode", "VELOCITY_CONTROL");
-                odrive->setParameter("axis1.controller.config.control_mode", "VELOCITY_CONTROL");
+                odrive->setParameter("axis0.controller.config.control_mode", String((long)CONTROL_MODE_VELOCITY_CONTROL));
+                odrive->setParameter("axis1.controller.config.control_mode", String((long)CONTROL_MODE_VELOCITY_CONTROL));
                 break;
             }
         }
@@ -95,9 +165,14 @@ void SpeedController::saveODriveConfig() {
 
         //odrive->setParameter("axis0.motor.config.current_lim_margin", BAT_MAX_CURRENT_MARGIN/2);
         //odrive->setParameter("axis1.motor.config.current_lim_margin", BAT_MAX_CURRENT_MARGIN/2);
+        setWatchdogEnabled(false);
 
         odrive->saveConfig();
         odrive->reboot();
+        delay(1000);
+        odrive->clearErrors();
+        hardwareStartUpCheck();
+        setWatchdogEnabled(true);
     }
 }
 
@@ -161,7 +236,6 @@ void SpeedController::hardwareStartUpCheck(){
     // Check ob ODrive verbunden ist, dazu wird eine einfache Abfrage gesendet
     while(odrive->getParameterAsFloat("vbus_voltage") == 0.0){
         delay(30);
-        setWatchdogEnabled(false);
     }
     float vBat = odrive->getParameterAsFloat("vbus_voltage");
     if(vBat <= V_BAT_MIN_START) {
@@ -204,26 +278,55 @@ void SpeedController::startMotorControl() {
     motor_active = true;
 }
 
-// Fehlerkontrolle, liefert eine Listen/struct mit Fehlern zurück
+
+// Fehlercode-Mapping zu Text
+String SpeedController::ODriveErrorToString(int error) {
+    switch (error) {
+        case 0: return "NONE";
+        case 1: return "INVALID_STATE";
+        case 2: return "UNDER_VOLTAGE";
+        case 4: return "OVER_VOLTAGE";
+        case 8: return "OVER_REGEN_CURRENT";
+        case 16: return "OVER_CURRENT";
+        case 32: return "BRAKE_DEADTIME";
+        case 64: return "MOTOR_FAILED";
+        case 128: return "SENSORLESS_ESTIMATOR";
+        case 256: return "ENCODER_FAILED";
+        case 512: return "CONTROLLER_FAILED";
+        case 2048: return "WATCHDOG_EXPIRED";
+        case 4096: return "MIN_ENDSTOP_PRESSED";
+        case 8192: return "MAX_ENDSTOP_PRESSED";
+        case 16384: return "ESTOP_REQUESTED";
+        case 131072: return "HOMING_NO_ENDSTOP";
+        case 262144: return "OVER_TEMP";
+        case 524288: return "UNKNOWN_POSITION";
+
+        default: return String(error);
+    }
+}
+
+
+
+// Fehlerkontrolle, liefert eine Liste/struct mit Fehlern zurück
 std::vector<ODriveErrors> SpeedController::getErrors() {
-    std::vector<ODriveErrors> odrive_errors; // Liste mit fehlern
+    std::vector<ODriveErrors> odrive_errors; // Liste mit Fehlern
 
     if (odrive != nullptr) {
         int systemError = odrive->getParameterAsInt("error");
         if (systemError != 0) {
-            ODriveErrors a = {systemError, "System"};
+            ODriveErrors a = {ODriveErrorToString(systemError), "System"};
             odrive_errors.push_back(a);
         }
 
         int axis0Error = odrive->getParameterAsInt("axis0.error");
         if (axis0Error != 0) {
-            ODriveErrors b = {axis0Error, "Axis0"};
+            ODriveErrors b = {ODriveErrorToString(axis0Error), "Axis0"};
             odrive_errors.push_back(b);
         }
 
         int axis1Error = odrive->getParameterAsInt("axis1.error");
         if (axis1Error != 0) {
-            ODriveErrors c = {axis1Error, "Axis1"};
+            ODriveErrors c = {ODriveErrorToString(axis1Error), "Axis1"};
             odrive_errors.push_back(c);
         }
     }
@@ -256,6 +359,22 @@ float SpeedController::calculateTorque(float velocity) {
     return torque;
 }
 
+float SpeedController::applyThrottleCurve(float normalized_input) {
+    if (normalized_input > -INPUT_REQUESTED_RPS_THRESHOLD && normalized_input < INPUT_REQUESTED_RPS_THRESHOLD) {
+        return 0.0f;
+    }
+
+    float sign = normalized_input < 0.0f ? -1.0f : 1.0f;
+    float magnitude = fabs(normalized_input);
+    if (magnitude > 1.0f) {
+        magnitude = 1.0f;
+    }
+
+    float curved = pow(magnitude, THROTTLE_CURVE_EXPONENT);
+    float blended = (THROTTLE_LINEAR_BLEND * magnitude) + ((1.0f - THROTTLE_LINEAR_BLEND) * curved);
+    return sign * blended;
+}
+
 // Zielgeschwindigkeit setzen in RPS
 void SpeedController::setTargetVelocity(float velocity) {
     float torque = calculateTorque(velocity);
@@ -270,8 +389,8 @@ float SpeedController::getRequestedRPS() {
     int hallValue = getHallMappedValue(HALL_FW_PIN) - getHallMappedValue(HALL_BW_PIN);
     float maxRPS = convertKMHtoRPS(mode.maxSpeed);
 
-    float toReturn = map(hallValue, 0, HALL_RESOLUTION, 0, maxRPS*100); 
-    return toReturn/100; 
+    float normalizedInput = (float)hallValue / (float)HALL_RESOLUTION;
+    return applyThrottleCurve(normalizedInput) * maxRPS;
 }
 
 void SpeedController::updateDirectionMode() {
@@ -295,8 +414,8 @@ float SpeedController::getRequestedNm() {
     int hallValue = getHallMappedValue(HALL_FW_PIN) - getHallMappedValue(HALL_BW_PIN);
     float maxNM = mode.maxTorque;
 
-    float toReturn = map(hallValue, 0, HALL_RESOLUTION, 0, maxNM*100); 
-    return toReturn/100; 
+    float normalizedInput = (float)hallValue / (float)HALL_RESOLUTION;
+    return applyThrottleCurve(normalizedInput) * maxNM;
 }
 
 float SpeedController::getCurrentNM() {
@@ -305,14 +424,14 @@ float SpeedController::getCurrentNM() {
 
 float SpeedController::convertRPStoKMh(float RPS) {
     float radiusM = RADIUS_WHEEL_CM / 100.0; // Konvertiere cm in m
-    float circumferenceM  = M_PI * radiusM; // Berechne den Umfang in Metern
+    float circumferenceM  = 2.0 * M_PI * radiusM; // Berechne den Umfang in Metern
     float speedMS = circumferenceM * RPS; // m/s
     return speedMS * 3.6 *-1; // Konvertiere m/s in km/h
 }
 
 float SpeedController::convertKMHtoRPS(float KMH) {
     float radiusM = RADIUS_WHEEL_CM / 100.0; // Konvertiere cm in m
-    float circumferenceM = M_PI * radiusM; // Berechne den Umfang in Metern
+    float circumferenceM = 2.0 * M_PI * radiusM; // Berechne den Umfang in Metern
     float speedMS = KMH / 3.6; // Konvertiere km/h in m/s
     return speedMS / circumferenceM; // Berechne RPS
 }
@@ -330,5 +449,23 @@ int SpeedController::getHallMappedValue(int gpio) {
     if(toReturn >= HALL_RESOLUTION){
         toReturn = HALL_RESOLUTION;
     }
-    return toReturn; 
+
+    float* filteredValue = nullptr;
+    if (gpio == HALL_FW_PIN) {
+        filteredValue = &hall_fw_filtered;
+    } else if (gpio == HALL_BW_PIN) {
+        filteredValue = &hall_bw_filtered;
+    }
+
+    if (filteredValue == nullptr) {
+        return toReturn;
+    }
+
+    if (*filteredValue < 0.0f) {
+        *filteredValue = (float)toReturn;
+    } else {
+        *filteredValue += THROTTLE_SMOOTHING_ALPHA * ((float)toReturn - *filteredValue);
+    }
+
+    return (int)(*filteredValue + 0.5f);
 }

@@ -73,10 +73,7 @@ void DisplayManager::updateMenuState() {
 void DisplayManager::updateMenuItem() {
     // Einstellungsmenü ist nicht aktiv -> aktuallisiere/resette die Einstellungen
     if(!settings_active) {
-        STANDARD_SETTING_ITEMS[0].current_value = speedController->getVelocityGain();
-        STANDARD_SETTING_ITEMS[1].current_value = speedController->getVelocityIntegratorGain();
-        STANDARD_SETTING_ITEMS[2].current_value = speedController->getTorqueMinimum();
-        STANDARD_SETTING_ITEMS[3].current_value = speedController->getTorqueSlope();
+        speedController->reloadSettingsMenuValues();
         return;
     }
 
@@ -96,6 +93,7 @@ void DisplayManager::updateMenuItem() {
                 if (STANDARD_SETTING_ITEMS[menu_settings_state].current_value < 0.0) {
                     STANDARD_SETTING_ITEMS[menu_settings_state].current_value = 0.0;
                 }
+                speedController->applyRuntimeSettings();
             }
         // + wird gedrückt
         } else if (button_pressed == '+') {
@@ -107,6 +105,7 @@ void DisplayManager::updateMenuItem() {
             } else {
                 // Wenn Menüpunkt verstellbar ist und aktuell bearbeitet wird, dann verändere diesen Wert
                 STANDARD_SETTING_ITEMS[menu_settings_state].current_value += STANDARD_SETTING_ITEMS[menu_settings_state].step;
+                speedController->applyRuntimeSettings();
             }
         } 
     }
@@ -127,6 +126,7 @@ void DisplayManager::updateMenuItem() {
                 current_menu_state = MENU_SETTINGS;
                 speedController->saveODriveConfig();
             } else{ // --> Cancel
+                speedController->loadSavedSettings();
                 setMenuState(MENU_MAIN);
             }
         }
@@ -137,10 +137,19 @@ void DisplayManager::displaySettingsMenu() {
 
     int16_t x1, y1;
     uint16_t w, h;
+    int visibleRows = settings_active ? SCREEN_HEIGHT / 8 : (SCREEN_HEIGHT / 8) - 1;
+    int firstItem = 0;
+    if (settings_active && menu_settings_state >= visibleRows) {
+        firstItem = menu_settings_state - visibleRows + 1;
+    }
 
-    for (int i = 0; i < STANDARD_SETTING_ITEMS_SIZE; i++) {
+    for (int row = 0; row < visibleRows; row++) {
+        int i = firstItem + row;
+        if (i >= STANDARD_SETTING_ITEMS_SIZE) {
+            break;
+        }
         // Cursor an den Anfang der Zeile setzen
-        display.setCursor(0, i * 8);  // Annahme: Jede Zeile ist 8 Pixel hoch, passe dies entsprechend an
+        display.setCursor(0, row * 8);  // Annahme: Jede Zeile ist 8 Pixel hoch, passe dies entsprechend an
 
         // Wenn Settings-Menü aktiv ist, dann zeige ">" an
         if (i == menu_settings_state && settings_active) {
@@ -174,7 +183,7 @@ void DisplayManager::displaySettingsMenu() {
             int16_t xPos = display.width() - w;
 
             // Cursor für den Wert setzen
-            display.setCursor(xPos, i * 8);  // Die gleiche Y-Position wie oben verwenden
+            display.setCursor(xPos, row * 8);  // Die gleiche Y-Position wie oben verwenden
 
             // Wert rechtsbündig ausgeben
             display.println(STANDARD_SETTING_ITEMS[i].current_value, STANDARD_SETTING_ITEMS[i].digits);
@@ -185,8 +194,8 @@ void DisplayManager::displaySettingsMenu() {
         } 
     }
     if (!settings_active) {
-        display.println("");
-        display.println("Bearbeiten mit 'OK'");
+        display.setCursor(0, visibleRows * 8);
+        display.println("OK: Bearbeiten");
 
     }
 
@@ -272,6 +281,7 @@ void DisplayManager::displayDebugMenu() {
         current_nm = 8.4;
         current_v = 36.0;
         current_kmh = 9.1;
+        current_rps = 2.0;
     }
     // Ampere
     display.setCursor(0, line*line_distance);  // Annahme: Jede Zeile ist 8 Pixel hoch, passe dies entsprechend an
@@ -412,7 +422,7 @@ void DisplayManager::displayErrors() {
     display.setCursor(0, i * 10);
     display.print("Error ");
     display.print(errors[i].source.c_str());
-    display.print(": ");
+    display.println(": ");
     display.println(errors[i].errorCode);
     }
 }

@@ -115,8 +115,8 @@ void ODriveUART::setState(ODriveAxisState requested_state, int axis) {
 }
 
  void ODriveUART::setVelocityIntegratorGain(float velocity_integrator_gain){
-    setParameter("axis0.controller.config.velocity_integrator_gain", velocity_integrator_gain);
-    setParameter("axis1.controller.config.velocity_integrator_gain", velocity_integrator_gain);
+    setParameter("axis0.controller.config.vel_integrator_gain", velocity_integrator_gain);
+    setParameter("axis1.controller.config.vel_integrator_gain", velocity_integrator_gain);
 }
 
  void ODriveUART::setControlMode(const String& control_mode){

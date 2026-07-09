@@ -36,7 +36,7 @@ const int HALL_RESOLUTION = 100; // Anzahl der Schritte zwischen Pedal gedrückt
 const int V_BAT_MAX = 41; // 100% Ladung der Akkus, Werte darüber werden auf 41 abgeschnitten. (41 Volt)
 const int V_BAT_MIN = 32; // 0% Ladung des Akkus, das HoverCar nimmt kein Gas mehr an wenn es bereits eingeschalten ist (Es bremmst auf 0). (32 Volt)
 const int V_BAT_MIN_START = 34; // Minimale Akkuladung um odrive in AXIS_STATE_CLOSED_LOOP_CONTROL zu versetzen. (darunter lässt sich das HooverCar nicht mehr einschalten) (34 Volt)
-const float BAT_MAX_CURRENT = 2.0; // Maximaler Strom bei Dauerbelastung in Amper (20A)
+const float BAT_MAX_CURRENT = 20.0; // Maximaler Strom bei Dauerbelastung in Amper (20A)
 const float BAT_MAX_CURRENT_MARGIN = 4.0; // Maximaler zusätzlicher Peak in Amper (<1sek) (Passiert durch die PI-Steuerung) (4A)
 
 // Definiere ESP32 GPIO-Pins und UART-Schnittstelle zu oDrive
@@ -72,17 +72,24 @@ const SpeedModeParameter modiParameter[] = {
   {"R", 4.0, 5.0},
 };
 
-float INPUT_REQUESTED_RPS_THRESHOLD = 0.07; // Schwellwert für die Pedaleingabe -> Darunter wird die Eingabe ignoriert/als 0 interpretiert
-float SPEED_OUTPUT_RPS_THRESHOLD = 0.08; // Schwellwert für die Geschwindigkeit -> Darunter wird die Geschwindigkeit als 0 interpretiert
+float INPUT_REQUESTED_RPS_THRESHOLD = 0.03; // Schwellwert für die Pedaleingabe -> Darunter wird die Eingabe ignoriert/als 0 interpretiert
+float SPEED_OUTPUT_RPS_THRESHOLD = 0.02; // Schwellwert für die Geschwindigkeit -> Darunter wird die Geschwindigkeit als 0 interpretiert
+
+float THROTTLE_CURVE_EXPONENT = 1.25; // >1 = feinere Dosierung untenrum, 1 = linear
+float THROTTLE_LINEAR_BLEND = 0.35; // Linearanteil, damit die Pedale nicht matschig wirken
+float THROTTLE_SMOOTHING_ALPHA = 0.35; // 1 = direkt, kleiner = ruhiger
 
 
 // Menüpunkte für das Display
-const int STANDARD_SETTING_ITEMS_SIZE = 6;
+const int STANDARD_SETTING_ITEMS_SIZE = 9;
 MenuItems STANDARD_SETTING_ITEMS[STANDARD_SETTING_ITEMS_SIZE]= { // Item_size anpassen! 
-    {"Vel Gain", 0.0, 0.01, 2, true, false},
-    {"Vel Int Gain", 0.0, 0.01, 2, true, false},
+    {"Vel Gain", 0.93, 0.01, 2, true, false},
+    {"Vel Int Gain", 4.65, 0.05, 2, true, false},
     {"Min. Nm", 2.0, 0.1, 1, true, false},
     {"Nm Slope", 0.031, 0.001, 3,  true, false},
+    {"Gas Curve", 1.25, 0.05, 2, true, false},
+    {"Gas Mix", 0.35, 0.05, 2, true, false},
+    {"Gas Smooth", 0.35, 0.05, 2, true, false},
     {"Save Settings", 0.0, 0.0, 0, false, false},
     {"Cancel", 0.0, 0.0, 0, false, false}
 };

@@ -11,7 +11,7 @@
 
 class SpeedController {
   public:
-    SpeedController() : odrive(nullptr), current_speed_mode(STANDARD_SPEED_MODE),current_control_mode(STANDARD_CONTROL_MODE){} // setze Standardwerte
+    SpeedController() : current_speed_mode(STANDARD_SPEED_MODE), temp_speed_mode(STANDARD_SPEED_MODE), current_control_mode(STANDARD_CONTROL_MODE), odrive(nullptr), eeprom(nullptr), velocity_gain(0.0f), velocity_integrator_gain(0.0f), current_ampere(0.0f), hall_fw_filtered(-1.0f), hall_bw_filtered(-1.0f){} // setze Standardwerte
   
     void setSpeedMode(SpeedMode mode) { current_speed_mode = mode;}
 
@@ -51,6 +51,15 @@ class SpeedController {
     // Setze Nm Untergrenze
     void setTorqueMinimum(float minimum) { eeprom->saveTorqueMinimum(minimum); }
 
+    // Lade gespeicherte Einstellungen und setze Laufzeitwerte
+    void loadSavedSettings();
+
+    // Uebernimmt die aktuellen Menuewerte ins Fahrverhalten
+    void applyRuntimeSettings();
+
+    // Verwirft ungespeicherte Menueaenderungen
+    void reloadSettingsMenuValues();
+
     // Berechne das Drehmoment in Nm anhand der rps um die Geschwindigkeit gleichmäßig zu steigern (Kein Ruck beim Anfahren)
     float calculateTorque(float velocity_rps);
 
@@ -58,7 +67,7 @@ class SpeedController {
     int getBatteryPercentage() { return map(getBatteryVoltage(), V_BAT_MIN, V_BAT_MAX, 0, 100); }
 
     // Gibt an ob Spannungs Untergrenze erreicht ist
-    bool isBatteryLow() { return getBatteryVoltage() < V_BAT_MIN; }
+    bool isBatteryLow() { return getBatteryVoltage() < V_BAT_MIN && getBatteryVoltage() > 10.0; }
 
     // Gibt den aktuellen p-PID Gain zurück
     float getVelocityGain() { if (!LOCAL_DEBUG){ return odrive->getVelocityGain();} else {return 1.5;} }
@@ -102,6 +111,8 @@ class SpeedController {
     // Fehlerkontrolle, liefert eine Listen/struct mit Fehlern zurück
     std::vector<ODriveErrors> getErrors();
 
+    String ODriveErrorToString(int error);
+
     // aktiviere/deaktiviere Motoren anhand der Pedalen und Geschwindigkeit
     void udateIdleState();
 
@@ -142,6 +153,8 @@ class SpeedController {
     int getHallMappedValue(int gpio);
 
   private:
+    float applyThrottleCurve(float normalized_input);
+
     SpeedMode current_speed_mode; // Aktuell ausgewählter Geschwindigkeitsmodus
     SpeedMode temp_speed_mode; // Temporärer Geschwindigkeitsmodus -> Wird für Rückwertsgang benötigt
     ControlMode current_control_mode; // Aktuell ausgewählter SteuerungsModus
@@ -150,6 +163,8 @@ class SpeedController {
     float velocity_gain; // p-PID
     float velocity_integrator_gain; // i-PID
     float current_ampere; // Aktueller Strom in Ampere
+    float hall_fw_filtered; // geglaetteter Pedalwert vorwaerts
+    float hall_bw_filtered; // geglaetteter Pedalwert rueckwaerts
     bool motor_active = false; // Gibt an ob der Motor aktiv ist
 };
 #endif

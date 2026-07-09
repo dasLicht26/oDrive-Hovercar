@@ -56,7 +56,7 @@ extern const float BAT_MAX_CURRENT_MARGIN;
 
 // Errors
 struct ODriveErrors {
-    int errorCode;
+    String errorCode;
     String source;
 };
 
@@ -87,6 +87,10 @@ struct SpeedModeParameter {
 
 extern float INPUT_REQUESTED_RPS_THRESHOLD; // Schwellwert für die Pedaleingabe -> Darunter wird die Eingabe ignoriert/als 0 interpretiert
 extern float SPEED_OUTPUT_RPS_THRESHOLD; // Schwellwert für die Geschwindigkeit -> Darunter wird die Geschwindigkeit als 0 interpretiert
+
+extern float THROTTLE_CURVE_EXPONENT; // Form der Pedalkennlinie
+extern float THROTTLE_LINEAR_BLEND; // Linearanteil der Pedalkennlinie
+extern float THROTTLE_SMOOTHING_ALPHA; // Glaettung der Pedaleingabe
 
 // Deklaration des externen Arrays mit den Parametern für die Speedmodi
 extern const SpeedModeParameter modiParameter[];
@@ -218,5 +222,31 @@ enum ODriveCanError {
     CAN_ERROR_PROTOCOL_INIT                  = 0x00000008,
 };
 
+// ODrive.Error
+enum ODriveError {
+    ODRIVE_ERROR_NONE                        = 0x00000000,
+    ODRIVE_ERROR_INITIALIZING                = 0x00000001,
+    ODRIVE_ERROR_SYSTEM_LEVEL                = 0x00000002,
+    ODRIVE_ERROR_TIMING_ERROR                = 0x00000004,
+    ODRIVE_ERROR_MISSING_ESTIMATE            = 0x00000008,
+    ODRIVE_ERROR_BAD_CONFIG                  = 0x00000010,
+    ODRIVE_ERROR_DRV_FAULT                   = 0x00000020,
+    ODRIVE_ERROR_MISSING_INPUT               = 0x00000040,
+    ODRIVE_ERROR_DC_BUS_OVER_VOLTAGE         = 0x00000100,
+    ODRIVE_ERROR_DC_BUS_UNDER_VOLTAGE        = 0x00000200,
+    ODRIVE_ERROR_DC_BUS_OVER_CURRENT         = 0x00000400,
+    ODRIVE_ERROR_DC_BUS_OVER_REGEN_CURRENT   = 0x00000800,
+    ODRIVE_ERROR_CURRENT_LIMIT_VIOLATION     = 0x00001000,
+    ODRIVE_ERROR_MOTOR_OVER_TEMP             = 0x00002000,
+    ODRIVE_ERROR_INVERTER_OVER_TEMP          = 0x00004000,
+    ODRIVE_ERROR_VELOCITY_LIMIT_VIOLATION    = 0x00008000,
+    ODRIVE_ERROR_POSITION_LIMIT_VIOLATION    = 0x00010000,
+    ODRIVE_ERROR_WATCHDOG_TIMER_EXPIRED      = 0x01000000,
+    ODRIVE_ERROR_ESTOP_REQUESTED             = 0x02000000,
+    ODRIVE_ERROR_SPINOUT_DETECTED            = 0x04000000,
+    ODRIVE_ERROR_BRAKE_RESISTOR_DISARMED     = 0x08000000,
+    ODRIVE_ERROR_THERMISTOR_DISCONNECTED     = 0x10000000,
+    ODRIVE_ERROR_CALIBRATION_ERROR           = 0x40000000,
+};
 
 #endif
