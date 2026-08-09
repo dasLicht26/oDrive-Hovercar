@@ -11,7 +11,7 @@
 
 class SpeedController {
   public:
-    SpeedController() : current_speed_mode(STANDARD_SPEED_MODE), temp_speed_mode(STANDARD_SPEED_MODE), current_control_mode(STANDARD_CONTROL_MODE), odrive(nullptr), eeprom(nullptr), velocity_gain(0.0f), velocity_integrator_gain(0.0f), current_ampere(0.0f), hall_fw_filtered(-1.0f), hall_bw_filtered(-1.0f), commanded_velocity_rps(0.0f), last_velocity_update_ms(0){} // setze Standardwerte
+    SpeedController() : current_speed_mode(STANDARD_SPEED_MODE), temp_speed_mode(STANDARD_SPEED_MODE), current_control_mode(STANDARD_CONTROL_MODE), odrive(nullptr), eeprom(nullptr), velocity_gain(0.0f), velocity_integrator_gain(0.0f), current_ampere(0.0f), hall_fw_filtered(-1.0f), hall_bw_filtered(-1.0f), commanded_velocity_rps(0.0f), last_velocity_update_ms(0), neutral_since_ms(0), pedals_released(true), direction_change_armed(true){} // setze Standardwerte
   
     void setSpeedMode(SpeedMode mode) { current_speed_mode = mode;}
 
@@ -85,10 +85,11 @@ class SpeedController {
     void stopMotorControl();
 
     // Motorsteuerung aktivieren -> Setzt den Motor in den Closed-Loop-Modus
-    void startMotorControl();
+    void startMotorControl(float initial_velocity_rps = 0.0f);
 
-    // setzte automatisch Vorwärts/Rückwerts Modus (MODE_R wird nur bei Stillstand aktiviert)
-    void updateDirectionMode();
+    // Setze automatisch Vorwaerts/Rueckwaerts-Modus (MODE_R nur bei Stillstand).
+    // Soll- und Istwert werden im Regelzyklus nur einmal ermittelt.
+    void updateDirectionMode(float requested_velocity_rps, float current_velocity_rps, bool pedals_released);
 
     // Bringe das Auto zum Stillstand -> Bremse bis Stillstand, Alle Eingaben (Gas/Bremse) sind bis absoluten Stillstand deaktiviert.
     void stopCar();
@@ -101,8 +102,8 @@ class SpeedController {
 
     String ODriveErrorToString(int error);
 
-    // Haelt die Motoren im normalen Fahrbetrieb im Closed Loop
-    void updateMotorState();
+    // Aktiviert den Closed Loop nur bei Pedalinput; im Freilauf bleibt IDLE aktiv.
+    void updateMotorState(bool pedal_requested, float current_velocity_rps);
 
     // Gibt an ob die Motoren aktiv oder im idle sind
     bool getMotorActive();
@@ -142,7 +143,7 @@ class SpeedController {
 
   private:
     float applyThrottleCurve(float normalized_input);
-    float applyVelocityRamp(float requested_velocity_rps);
+    float applyVelocityRamp(float requested_velocity_rps, float current_velocity_rps);
 
     SpeedMode current_speed_mode; // Aktuell ausgewählter Geschwindigkeitsmodus
     SpeedMode temp_speed_mode; // Temporärer Geschwindigkeitsmodus -> Wird für Rückwertsgang benötigt
@@ -156,6 +157,9 @@ class SpeedController {
     float hall_bw_filtered; // geglaetteter Pedalwert rueckwaerts
     float commanded_velocity_rps; // Gerampter Sollwert, der an den ODrive gesendet wird
     unsigned long last_velocity_update_ms;
+    unsigned long neutral_since_ms; // Entprellzeit vor dem Wechsel in den Freilauf
+    bool pedals_released; // Beide Pedale befinden sich sicher in ihrer Totzone
+    bool direction_change_armed; // Richtungswechsel erst nach Neutral bei Stillstand
     bool motor_active = false; // Gibt an ob der Motor aktiv ist
 };
 #endif

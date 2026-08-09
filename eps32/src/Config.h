@@ -165,6 +165,13 @@ enum ODriveControlMode {
     CONTROL_MODE_POSITION_CONTROL            = 3,
 };
 
+// ODrive.Controller.InputMode
+enum ODriveInputMode {
+    INPUT_MODE_INACTIVE                     = 0,
+    INPUT_MODE_PASSTHROUGH                  = 1,
+    INPUT_MODE_VEL_RAMP                     = 2,
+};
+
 // ODrive.ComponentStatus
 enum ODriveComponentStatus {
     COMPONENT_STATUS_NOMINAL                 = 0,

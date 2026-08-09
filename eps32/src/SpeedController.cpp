@@ -96,13 +96,29 @@ void SpeedController::applyRuntimeSettings() {
 
 // Geschwindigkeit aktualisieren
 void SpeedController::updateSpeed(){
-    updateDirectionMode();
-    updateMotorState();
+    float requestedRPS = getRequestedRPS();
+    float currentVelocityRPS = getCurrentVelocity();
+    SpeedMode previousMode = getSpeedMode();
+    updateDirectionMode(requestedRPS, currentVelocityRPS, pedals_released);
+
+    // Nach einem erlaubten Richtungswechsel den Betrag mit dem Limit des
+    // neuen Fahrmodus neu berechnen (Rueckwaerts hat ein kleineres Tempolimit).
+    if (getSpeedMode() != previousMode) {
+        requestedRPS = getRequestedRPS();
+    }
+
+    bool pedalRequested = !pedals_released;
+    updateMotorState(pedalRequested, currentVelocityRPS);
+
+    // Im Freilauf darf Bewegung durch Schieben den Regler nicht wieder aktivieren.
+    if (!motor_active) {
+        current_ampere = 0.0f;
+        return;
+    }
+
     current_ampere = getVBusCurrent();
     switch(current_control_mode){
         case VELOCITY_CONTROL: {
-            float requestedRPS = getRequestedRPS();
-            
             // Wenn der aktuelle Strom das Limit überschreitet
             if (current_ampere > BAT_MAX_CURRENT) {
                 // Reduziere den Betrag symmetrisch fuer Vorwaerts- und Rueckwaertsfahrt.
@@ -119,7 +135,28 @@ void SpeedController::updateSpeed(){
                 requestedRPS = 0;
             }
 
-            setTargetVelocity(applyVelocityRamp(requestedRPS));
+            bool stoppedWithoutPedal = pedals_released
+                && fabs(currentVelocityRPS) <= SPEED_OUTPUT_RPS_THRESHOLD * 2.0f;
+
+            if (stoppedWithoutPedal) {
+                // Restliche Rampen- und Integratorwerte beseitigen. Dadurch
+                // entsteht beim Erreichen von 0 km/h kein Nachruck.
+                commanded_velocity_rps = 0.0f;
+                setTargetVelocity(0.0f);
+
+                if (neutral_since_ms == 0) {
+                    neutral_since_ms = millis();
+                    odrive->setParameter("axis0.controller.vel_integrator_torque", 0.0f);
+                    odrive->setParameter("axis1.controller.vel_integrator_torque", 0.0f);
+                } else if (millis() - neutral_since_ms >= 250) {
+                    // Nach stabiler Nullphase Drehmoment abschalten. Das Auto
+                    // kann danach ohne Haltemoment geschoben werden.
+                    stopMotorControl();
+                }
+            } else {
+                neutral_since_ms = 0;
+                setTargetVelocity(applyVelocityRamp(requestedRPS, currentVelocityRPS));
+            }
             break;
         }
         case TORQUE_CONTROL: {
@@ -132,11 +169,11 @@ void SpeedController::updateSpeed(){
 
 
 
-void SpeedController::updateMotorState(){
-    // Im normalen Fahrbetrieb bleibt die Regelung auch bei 0 km/h aktiv.
-    // IDLE wird nur explizit durch stopMotorControl() bei Fehlern/Abschalten gesetzt.
-    if (!motor_active) {
-        startMotorControl();
+void SpeedController::updateMotorState(bool pedalRequested, float currentVelocityRPS){
+    if (!motor_active && pedalRequested) {
+        // Bumpless transfer: Beim Aktivieren aus rollendem Freilauf startet
+        // der Sollwert an der gemessenen Geschwindigkeit.
+        startMotorControl(currentVelocityRPS);
     }
 }
 
@@ -172,6 +209,10 @@ void SpeedController::saveODriveConfig() {
             case VELOCITY_CONTROL: {
                 odrive->setParameter("axis0.controller.config.control_mode", String((long)CONTROL_MODE_VELOCITY_CONTROL));
                 odrive->setParameter("axis1.controller.config.control_mode", String((long)CONTROL_MODE_VELOCITY_CONTROL));
+                // Die Fahr-Rampen werden im ESP32 berechnet. Eine zusaetzliche
+                // ODrive-VEL_RAMP wuerde Gasannahme und Bremsen doppelt verzoegern.
+                odrive->setParameter("axis0.controller.config.input_mode", String((long)INPUT_MODE_PASSTHROUGH));
+                odrive->setParameter("axis1.controller.config.input_mode", String((long)INPUT_MODE_PASSTHROUGH));
                 break;
             }
         }
@@ -201,6 +242,7 @@ void SpeedController::stopMotorControl() {
     }
     commanded_velocity_rps = 0.0f;
     last_velocity_update_ms = 0;
+    neutral_since_ms = 0;
     motor_active = false;
 }
 
@@ -287,15 +329,21 @@ void SpeedController::resetWatchdog(){
     }
 }
 
-void SpeedController::startMotorControl() {
+void SpeedController::startMotorControl(float initialVelocityRPS) {
     if (odrive != nullptr) {
-        odrive->setVelocity(0.0f);
+        if (getControlMode() == VELOCITY_CONTROL) {
+            // Auch ohne erneutes Speichern bei jedem Start eindeutig setzen.
+            odrive->setParameter("axis0.controller.config.input_mode", String((long)INPUT_MODE_PASSTHROUGH));
+            odrive->setParameter("axis1.controller.config.input_mode", String((long)INPUT_MODE_PASSTHROUGH));
+        }
+        odrive->setVelocity(initialVelocityRPS);
         odrive->setState(AXIS_STATE_CLOSED_LOOP_CONTROL, 0);
         odrive->setState(AXIS_STATE_CLOSED_LOOP_CONTROL, 1);
     }
 
-    commanded_velocity_rps = 0.0f;
+    commanded_velocity_rps = initialVelocityRPS;
     last_velocity_update_ms = millis();
+    neutral_since_ms = 0;
     motor_active = true;
 }
 
@@ -381,7 +429,7 @@ float SpeedController::applyThrottleCurve(float normalized_input) {
     return sign * blended;
 }
 
-float SpeedController::applyVelocityRamp(float requested_velocity_rps) {
+float SpeedController::applyVelocityRamp(float requested_velocity_rps, float current_velocity_rps) {
     unsigned long now = millis();
     if (last_velocity_update_ms == 0) {
         last_velocity_update_ms = now;
@@ -390,8 +438,9 @@ float SpeedController::applyVelocityRamp(float requested_velocity_rps) {
 
     float deltaSeconds = (now - last_velocity_update_ms) / 1000.0f;
     last_velocity_update_ms = now;
-    // Ein langsamer UART-Zyklus darf keinen grossen Sollwertsprung erzeugen.
-    deltaSeconds = min(deltaSeconds, 0.1f);
+    // Kurze UART-Verzoegerungen muessen vollstaendig in die Rampe eingehen.
+    // Nur nach einem echten langen Stillstand wird der Sprung begrenzt.
+    deltaSeconds = min(deltaSeconds, 0.25f);
 
     float rampTarget = requested_velocity_rps;
     if (commanded_velocity_rps * requested_velocity_rps < 0.0f) {
@@ -399,6 +448,19 @@ float SpeedController::applyVelocityRamp(float requested_velocity_rps) {
     }
 
     bool accelerating = fabs(rampTarget) > fabs(commanded_velocity_rps);
+
+    bool brakingRequested = !accelerating
+        && fabs(rampTarget) < fabs(current_velocity_rps);
+    if (brakingRequested) {
+        // Wenn das Fahrzeug dem bisherigen Beschleunigungssollwert hinterherhinkt,
+        // darf die Rampe beim Loslassen nicht weiter oberhalb der Istgeschwindigkeit
+        // liegen. Sonst treibt der Regler trotz kleinerem Pedalwert weiter an.
+        bool sameDirection = commanded_velocity_rps * current_velocity_rps >= 0.0f;
+        if (sameDirection && fabs(current_velocity_rps) < fabs(commanded_velocity_rps)) {
+            commanded_velocity_rps = current_velocity_rps;
+        }
+    }
+
     float rateKmhPerSecond = accelerating
         ? STANDARD_SETTING_ITEMS[2].current_value
         : STANDARD_SETTING_ITEMS[3].current_value;
@@ -425,26 +487,54 @@ void SpeedController::setTargetVelocity(float velocity) {
 // Zielgeschwindigkeit auslesen in RPS aus Pedalen
 float SpeedController::getRequestedRPS() {
     SpeedModeParameter mode = modiParameter[current_speed_mode];
-    int hallValue = getHallMappedValue(HALL_FW_PIN) - getHallMappedValue(HALL_BW_PIN);
+    int forwardPedal = getHallMappedValue(HALL_FW_PIN);
+    int backwardPedal = getHallMappedValue(HALL_BW_PIN);
+    pedals_released = forwardPedal == 0 && backwardPedal == 0;
+
+    int hallValue;
+    if (current_speed_mode == MODE_R) {
+        // Rueckwaertsfahrt: Das rechte Vorwaertspedal ist die Bremse und
+        // gewinnt immer gegen das linke Rueckwaerts-Fahrpedal.
+        hallValue = forwardPedal > 0 ? forwardPedal : -backwardPedal;
+    } else {
+        // Vorwaertsfahrt: Das linke Rueckwaertspedal ist die Bremse und
+        // gewinnt immer gegen das rechte Vorwaerts-Fahrpedal.
+        hallValue = backwardPedal > 0 ? -backwardPedal : forwardPedal;
+    }
     float maxRPS = convertKMHtoRPS(mode.maxSpeed);
 
     float normalizedInput = (float)hallValue / (float)HALL_RESOLUTION;
     return applyThrottleCurve(normalizedInput) * maxRPS;
 }
 
-void SpeedController::updateDirectionMode() {
-    float requestedRPS = getRequestedRPS();
-    float currentVelocity = getCurrentVelocity();
-    bool nearlyStopped = fabs(currentVelocity) <= SPEED_OUTPUT_RPS_THRESHOLD * 3.0f;
+void SpeedController::updateDirectionMode(float requestedRPS, float currentVelocityRPS, bool pedalsReleased) {
+    bool nearlyStopped = fabs(currentVelocityRPS) <= SPEED_OUTPUT_RPS_THRESHOLD * 3.0f;
 
     if (current_speed_mode != MODE_R){
         temp_speed_mode = current_speed_mode;
     }
-    if (requestedRPS < -INPUT_REQUESTED_RPS_THRESHOLD && current_speed_mode != MODE_R && nearlyStopped) {
-        setSpeedMode(MODE_R);
-    } else if (requestedRPS > INPUT_REQUESTED_RPS_THRESHOLD && current_speed_mode == MODE_R && nearlyStopped){
-        setSpeedMode(temp_speed_mode);
+
+    // Ein Richtungswechsel wird erst freigegeben, wenn das Fahrzeug nahezu
+    // steht UND beide Pedale losgelassen wurden. Ein gehaltenes Gegenpedal
+    // bleibt dadurch auch nach Stillstand ausschliesslich die Bremse.
+    if (pedalsReleased) {
+        if (nearlyStopped) {
+            direction_change_armed = true;
+        }
+        return;
     }
+
+    if (direction_change_armed && nearlyStopped) {
+        if (requestedRPS < -0.0001f && current_speed_mode != MODE_R) {
+            setSpeedMode(MODE_R);
+        } else if (requestedRPS > 0.0001f && current_speed_mode == MODE_R) {
+            setSpeedMode(temp_speed_mode);
+        }
+    }
+
+    // Jede Pedalbetaetigung verbraucht die Freigabe. Fuer einen weiteren
+    // Richtungswechsel ist wieder eine echte Neutralphase erforderlich.
+    direction_change_armed = false;
 }
 
 bool SpeedController::getMotorActive() {
@@ -502,6 +592,15 @@ int SpeedController::getHallMappedValue(int gpio) {
 
     if (filteredValue == nullptr) {
         return toReturn;
+    }
+
+    // Die Glaettung darf das Loslassen nicht verzoegern. Innerhalb der
+    // Pedal-Totzone wird sofort auf null eingerastet; beim Gasgeben bleibt
+    // die einstellbare Glaettung aktiv.
+    int releaseThreshold = (int)(INPUT_REQUESTED_RPS_THRESHOLD * HALL_RESOLUTION);
+    if (toReturn <= releaseThreshold) {
+        *filteredValue = 0.0f;
+        return 0;
     }
 
     if (*filteredValue < 0.0f) {

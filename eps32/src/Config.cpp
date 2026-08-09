@@ -86,7 +86,7 @@ MenuItems STANDARD_SETTING_ITEMS[STANDARD_SETTING_ITEMS_SIZE]= { // Item_size an
     {"Vel Gain", 0.45, 0.01, 2, true, false},
     {"Vel Int Gain", 0.00, 0.05, 2, true, false},
     {"Accel kmh/s", 3.0, 0.25, 2, true, false},
-    {"Brake kmh/s", 4.0, 0.25, 2, true, false},
+    {"Brake kmh/s", 8.0, 0.25, 2, true, false},
     {"Gas Curve", 1.25, 0.05, 2, true, false},
     {"Gas Mix", 0.35, 0.05, 2, true, false},
     {"Gas Smooth", 0.35, 0.05, 2, true, false},
