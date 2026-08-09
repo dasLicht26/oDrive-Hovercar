@@ -40,7 +40,7 @@ extern const int ODRIVE_UART;
 ==========================================
 */
 
-extern const float RADIUS_WHEEL_CM; // Definiere Reifendurchmesser (Für Geschwindigkeitberechnung in Kmh) in cm
+extern const float WHEEL_DIAMETER_CM; // Reifendurchmesser fuer die Geschwindigkeitsberechnung in cm
 
 // Konfig HALL-Sensoren (Pedale)
 extern const float HALL_ANALOG_MAX; 

@@ -54,7 +54,7 @@ const int OLED_RESET = -1;
 ==========================================
 */
 
-const float RADIUS_WHEEL_CM = 21.0; // Definiere Reifendurchmesser in cm (Für Geschwindigkeitberechnung in Kmh)
+const float WHEEL_DIAMETER_CM = 21.0; // Reifendurchmesser in cm
 
 ControlMode STANDARD_CONTROL_MODE = VELOCITY_CONTROL; // Standard Steuerungsmodus
 SpeedMode STANDARD_SPEED_MODE = MODE_4; // standard Geschwindigkeitsmodus
@@ -83,10 +83,10 @@ float THROTTLE_SMOOTHING_ALPHA = 0.35; // 1 = direkt, kleiner = ruhiger
 // Menüpunkte für das Display
 const int STANDARD_SETTING_ITEMS_SIZE = 9;
 MenuItems STANDARD_SETTING_ITEMS[STANDARD_SETTING_ITEMS_SIZE]= { // Item_size anpassen! 
-    {"Vel Gain", 0.93, 0.01, 2, true, false},
-    {"Vel Int Gain", 4.65, 0.05, 2, true, false},
-    {"Min. Nm", 2.0, 0.1, 1, true, false},
-    {"Nm Slope", 0.031, 0.001, 3,  true, false},
+    {"Vel Gain", 0.45, 0.01, 2, true, false},
+    {"Vel Int Gain", 0.00, 0.05, 2, true, false},
+    {"Accel kmh/s", 3.0, 0.25, 2, true, false},
+    {"Brake kmh/s", 4.0, 0.25, 2, true, false},
     {"Gas Curve", 1.25, 0.05, 2, true, false},
     {"Gas Mix", 0.35, 0.05, 2, true, false},
     {"Gas Smooth", 0.35, 0.05, 2, true, false},

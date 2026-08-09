@@ -17,8 +17,8 @@ void SpeedController::reloadSettingsMenuValues() {
         STANDARD_SETTING_ITEMS[0].current_value = getVelocityGain();
         STANDARD_SETTING_ITEMS[1].current_value = getVelocityIntegratorGain();
     }
-    STANDARD_SETTING_ITEMS[2].current_value = getTorqueMinimum();
-    STANDARD_SETTING_ITEMS[3].current_value = getTorqueSlope();
+    STANDARD_SETTING_ITEMS[2].current_value = getAccelerationRate();
+    STANDARD_SETTING_ITEMS[3].current_value = getBrakeRate();
     STANDARD_SETTING_ITEMS[4].current_value = THROTTLE_CURVE_EXPONENT;
     STANDARD_SETTING_ITEMS[5].current_value = THROTTLE_LINEAR_BLEND;
     STANDARD_SETTING_ITEMS[6].current_value = THROTTLE_SMOOTHING_ALPHA;
@@ -29,20 +29,37 @@ void SpeedController::loadSavedSettings() {
         return;
     }
 
-    STANDARD_SETTING_ITEMS[2].current_value = eeprom->loadTorqueMinimum();
-    STANDARD_SETTING_ITEMS[3].current_value = eeprom->loadTorqueSlope();
+    STANDARD_SETTING_ITEMS[0].current_value = eeprom->loadVelocityGain();
+    STANDARD_SETTING_ITEMS[1].current_value = eeprom->loadVelocityIntegratorGain();
+    STANDARD_SETTING_ITEMS[2].current_value = eeprom->loadAccelerationRate();
+    STANDARD_SETTING_ITEMS[3].current_value = eeprom->loadBrakeRate();
     THROTTLE_CURVE_EXPONENT = eeprom->loadThrottleCurveExponent();
     THROTTLE_LINEAR_BLEND = eeprom->loadThrottleLinearBlend();
     THROTTLE_SMOOTHING_ALPHA = eeprom->loadThrottleSmoothingAlpha();
     STANDARD_SETTING_ITEMS[4].current_value = THROTTLE_CURVE_EXPONENT;
     STANDARD_SETTING_ITEMS[5].current_value = THROTTLE_LINEAR_BLEND;
     STANDARD_SETTING_ITEMS[6].current_value = THROTTLE_SMOOTHING_ALPHA;
+    applyRuntimeSettings();
 }
 
 void SpeedController::applyRuntimeSettings() {
+    float accelerationRate = STANDARD_SETTING_ITEMS[2].current_value;
+    float brakeRate = STANDARD_SETTING_ITEMS[3].current_value;
     float throttleCurve = STANDARD_SETTING_ITEMS[4].current_value;
     float throttleBlend = STANDARD_SETTING_ITEMS[5].current_value;
     float throttleSmoothing = STANDARD_SETTING_ITEMS[6].current_value;
+
+    if (accelerationRate < 0.5f) {
+        accelerationRate = 0.5f;
+    } else if (accelerationRate > 20.0f) {
+        accelerationRate = 20.0f;
+    }
+
+    if (brakeRate < 0.5f) {
+        brakeRate = 0.5f;
+    } else if (brakeRate > 20.0f) {
+        brakeRate = 20.0f;
+    }
 
     if (throttleCurve < 0.8f) {
         throttleCurve = 0.8f;
@@ -62,6 +79,8 @@ void SpeedController::applyRuntimeSettings() {
         throttleSmoothing = 1.0f;
     }
 
+    STANDARD_SETTING_ITEMS[2].current_value = accelerationRate;
+    STANDARD_SETTING_ITEMS[3].current_value = brakeRate;
     STANDARD_SETTING_ITEMS[4].current_value = throttleCurve;
     STANDARD_SETTING_ITEMS[5].current_value = throttleBlend;
     STANDARD_SETTING_ITEMS[6].current_value = throttleSmoothing;
@@ -78,7 +97,7 @@ void SpeedController::applyRuntimeSettings() {
 // Geschwindigkeit aktualisieren
 void SpeedController::updateSpeed(){
     updateDirectionMode();
-    udateIdleState();
+    updateMotorState();
     current_ampere = getVBusCurrent();
     switch(current_control_mode){
         case VELOCITY_CONTROL: {
@@ -86,22 +105,21 @@ void SpeedController::updateSpeed(){
             
             // Wenn der aktuelle Strom das Limit überschreitet
             if (current_ampere > BAT_MAX_CURRENT) {
-                // Reduziere die Geschwindigkeit schrittweise
-                requestedRPS -= 0.9 * (current_ampere - BAT_MAX_CURRENT);
-                if (requestedRPS < 0) {
-                    requestedRPS = 0;  // Verhindert, dass die Geschwindigkeit negativ wird
-                }
+                // Reduziere den Betrag symmetrisch fuer Vorwaerts- und Rueckwaertsfahrt.
+                float reducedMagnitude = fabs(requestedRPS) - 0.9f * (current_ampere - BAT_MAX_CURRENT);
+                reducedMagnitude = max(0.0f, reducedMagnitude);
+                requestedRPS = requestedRPS < 0.0f ? -reducedMagnitude : reducedMagnitude;
             }
 
 
             // Wenn die Geschwindigkeit unter dem Schwellenwert liegt und nicht zum aktuellen Modus passt, setze auf 0
-            if (getSpeedMode() == MODE_R && getRequestedRPS() > 0) {
+            if (getSpeedMode() == MODE_R && requestedRPS > 0) {
                 requestedRPS = 0;
-            } else if (getSpeedMode() != MODE_R && getRequestedRPS() < 0 && getCurrentVelocity() < (SPEED_OUTPUT_RPS_THRESHOLD * 3)) {
+            } else if (getSpeedMode() != MODE_R && requestedRPS < 0) {
                 requestedRPS = 0;
             }
 
-            setTargetVelocity(requestedRPS);
+            setTargetVelocity(applyVelocityRamp(requestedRPS));
             break;
         }
         case TORQUE_CONTROL: {
@@ -114,15 +132,11 @@ void SpeedController::updateSpeed(){
 
 
 
-void SpeedController::udateIdleState(){
-    if (getRequestedRPS() <= INPUT_REQUESTED_RPS_THRESHOLD && getRequestedRPS() >= -INPUT_REQUESTED_RPS_THRESHOLD && getCurrentVelocity() <= SPEED_OUTPUT_RPS_THRESHOLD && getCurrentVelocity() >= -SPEED_OUTPUT_RPS_THRESHOLD) {
-        if (odrive -> getState(0) != AXIS_STATE_IDLE && odrive -> getState(1) != AXIS_STATE_IDLE) {
-            stopMotorControl();
-        }
-    } else if(getRequestedRPS() > INPUT_REQUESTED_RPS_THRESHOLD || getRequestedRPS() < -INPUT_REQUESTED_RPS_THRESHOLD) {
-        if (odrive -> getState(0) != AXIS_STATE_CLOSED_LOOP_CONTROL && odrive -> getState(1) != AXIS_STATE_CLOSED_LOOP_CONTROL) {
-            startMotorControl();
-        }
+void SpeedController::updateMotorState(){
+    // Im normalen Fahrbetrieb bleibt die Regelung auch bei 0 km/h aktiv.
+    // IDLE wird nur explizit durch stopMotorControl() bei Fehlern/Abschalten gesetzt.
+    if (!motor_active) {
+        startMotorControl();
     }
 }
 
@@ -131,8 +145,10 @@ void SpeedController::udateIdleState(){
 void SpeedController::saveODriveConfig() {
     
     applyRuntimeSettings();
-    eeprom->saveTorqueSlope(STANDARD_SETTING_ITEMS[3].current_value);
-    eeprom->saveTorqueMinimum(STANDARD_SETTING_ITEMS[2].current_value);
+    eeprom->saveVelocityGain(STANDARD_SETTING_ITEMS[0].current_value);
+    eeprom->saveVelocityIntegratorGain(STANDARD_SETTING_ITEMS[1].current_value);
+    eeprom->saveBrakeRate(STANDARD_SETTING_ITEMS[3].current_value);
+    eeprom->saveAccelerationRate(STANDARD_SETTING_ITEMS[2].current_value);
     eeprom->saveThrottleCurveExponent(STANDARD_SETTING_ITEMS[4].current_value);
     eeprom->saveThrottleLinearBlend(STANDARD_SETTING_ITEMS[5].current_value);
     eeprom->saveThrottleSmoothingAlpha(STANDARD_SETTING_ITEMS[6].current_value);
@@ -183,6 +199,8 @@ void SpeedController::stopMotorControl() {
         odrive->setState(AXIS_STATE_IDLE, 0);
         odrive->setState(AXIS_STATE_IDLE, 1);
     }
+    commanded_velocity_rps = 0.0f;
+    last_velocity_update_ms = 0;
     motor_active = false;
 }
 
@@ -191,7 +209,7 @@ void SpeedController::stopCar() {
         // Bremse bis Stillstand
         odrive->setVelocity(0.0);
         // Warte bis Stillstand erreicht
-        while (getCurrentKMH() != 0) {
+        while (fabs(getCurrentVelocity()) > SPEED_OUTPUT_RPS_THRESHOLD) {
             delay(30);
         }
     }
@@ -271,10 +289,13 @@ void SpeedController::resetWatchdog(){
 
 void SpeedController::startMotorControl() {
     if (odrive != nullptr) {
+        odrive->setVelocity(0.0f);
         odrive->setState(AXIS_STATE_CLOSED_LOOP_CONTROL, 0);
         odrive->setState(AXIS_STATE_CLOSED_LOOP_CONTROL, 1);
     }
 
+    commanded_velocity_rps = 0.0f;
+    last_velocity_update_ms = millis();
     motor_active = true;
 }
 
@@ -344,21 +365,6 @@ float SpeedController::getCurrentVelocity() {
     return 88.0;
 }
 
-float SpeedController::calculateTorque(float velocity) {
-    //Quadratische Funktion, um das maximale Drehmoment abhängig von der Geschwindigkeit zu berechnen
-    float min_torque = STANDARD_SETTING_ITEMS[2].current_value;
-    float max_torque = getSpeedModeParameter().maxTorque;
-    float torque_slope = STANDARD_SETTING_ITEMS[3].current_value;
-    float torque = min_torque + torque_slope * pow(abs(velocity), 2); 
-
-    // Begrenze das Drehmoment auf den maximalen Wert
-    if (torque > max_torque) {
-        torque = max_torque;
-    }
-
-    return torque;
-}
-
 float SpeedController::applyThrottleCurve(float normalized_input) {
     if (normalized_input > -INPUT_REQUESTED_RPS_THRESHOLD && normalized_input < INPUT_REQUESTED_RPS_THRESHOLD) {
         return 0.0f;
@@ -375,11 +381,44 @@ float SpeedController::applyThrottleCurve(float normalized_input) {
     return sign * blended;
 }
 
+float SpeedController::applyVelocityRamp(float requested_velocity_rps) {
+    unsigned long now = millis();
+    if (last_velocity_update_ms == 0) {
+        last_velocity_update_ms = now;
+        return commanded_velocity_rps;
+    }
+
+    float deltaSeconds = (now - last_velocity_update_ms) / 1000.0f;
+    last_velocity_update_ms = now;
+    // Ein langsamer UART-Zyklus darf keinen grossen Sollwertsprung erzeugen.
+    deltaSeconds = min(deltaSeconds, 0.1f);
+
+    float rampTarget = requested_velocity_rps;
+    if (commanded_velocity_rps * requested_velocity_rps < 0.0f) {
+        rampTarget = 0.0f; // Vor einem Richtungswechsel zuerst kontrolliert anhalten.
+    }
+
+    bool accelerating = fabs(rampTarget) > fabs(commanded_velocity_rps);
+    float rateKmhPerSecond = accelerating
+        ? STANDARD_SETTING_ITEMS[2].current_value
+        : STANDARD_SETTING_ITEMS[3].current_value;
+    float maxStep = fabs(convertKMHtoRPS(rateKmhPerSecond)) * deltaSeconds;
+    float difference = rampTarget - commanded_velocity_rps;
+
+    if (fabs(difference) <= maxStep) {
+        commanded_velocity_rps = rampTarget;
+    } else {
+        commanded_velocity_rps += difference < 0.0f ? -maxStep : maxStep;
+    }
+
+    return commanded_velocity_rps;
+}
+
 // Zielgeschwindigkeit setzen in RPS
 void SpeedController::setTargetVelocity(float velocity) {
-    float torque = calculateTorque(velocity);
     if (odrive != nullptr) {
-        odrive->setVelocity(velocity, torque);
+        // Der optionale dritte ASCII-Parameter waere Torque-Feedforward, kein Limit.
+        odrive->setVelocity(velocity);
     }
 }
 
@@ -394,12 +433,16 @@ float SpeedController::getRequestedRPS() {
 }
 
 void SpeedController::updateDirectionMode() {
+    float requestedRPS = getRequestedRPS();
+    float currentVelocity = getCurrentVelocity();
+    bool nearlyStopped = fabs(currentVelocity) <= SPEED_OUTPUT_RPS_THRESHOLD * 3.0f;
+
     if (current_speed_mode != MODE_R){
         temp_speed_mode = current_speed_mode;
     }
-    if (getRequestedRPS() < -INPUT_REQUESTED_RPS_THRESHOLD && current_speed_mode != MODE_R && !motor_active) {
+    if (requestedRPS < -INPUT_REQUESTED_RPS_THRESHOLD && current_speed_mode != MODE_R && nearlyStopped) {
         setSpeedMode(MODE_R);
-    } else if (current_speed_mode == MODE_R && !motor_active){
+    } else if (requestedRPS > INPUT_REQUESTED_RPS_THRESHOLD && current_speed_mode == MODE_R && nearlyStopped){
         setSpeedMode(temp_speed_mode);
     }
 }
@@ -423,15 +466,15 @@ float SpeedController::getCurrentNM() {
 }
 
 float SpeedController::convertRPStoKMh(float RPS) {
-    float radiusM = RADIUS_WHEEL_CM / 100.0; // Konvertiere cm in m
-    float circumferenceM  = 2.0 * M_PI * radiusM; // Berechne den Umfang in Metern
+    float diameterM = WHEEL_DIAMETER_CM / 100.0f;
+    float circumferenceM  = M_PI * diameterM;
     float speedMS = circumferenceM * RPS; // m/s
     return speedMS * 3.6 *-1; // Konvertiere m/s in km/h
 }
 
 float SpeedController::convertKMHtoRPS(float KMH) {
-    float radiusM = RADIUS_WHEEL_CM / 100.0; // Konvertiere cm in m
-    float circumferenceM = 2.0 * M_PI * radiusM; // Berechne den Umfang in Metern
+    float diameterM = WHEEL_DIAMETER_CM / 100.0f;
+    float circumferenceM = M_PI * diameterM;
     float speedMS = KMH / 3.6; // Konvertiere km/h in m/s
     return speedMS / circumferenceM; // Berechne RPS
 }

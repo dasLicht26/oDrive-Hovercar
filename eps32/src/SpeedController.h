@@ -11,7 +11,7 @@
 
 class SpeedController {
   public:
-    SpeedController() : current_speed_mode(STANDARD_SPEED_MODE), temp_speed_mode(STANDARD_SPEED_MODE), current_control_mode(STANDARD_CONTROL_MODE), odrive(nullptr), eeprom(nullptr), velocity_gain(0.0f), velocity_integrator_gain(0.0f), current_ampere(0.0f), hall_fw_filtered(-1.0f), hall_bw_filtered(-1.0f){} // setze Standardwerte
+    SpeedController() : current_speed_mode(STANDARD_SPEED_MODE), temp_speed_mode(STANDARD_SPEED_MODE), current_control_mode(STANDARD_CONTROL_MODE), odrive(nullptr), eeprom(nullptr), velocity_gain(0.0f), velocity_integrator_gain(0.0f), current_ampere(0.0f), hall_fw_filtered(-1.0f), hall_bw_filtered(-1.0f), commanded_velocity_rps(0.0f), last_velocity_update_ms(0){} // setze Standardwerte
   
     void setSpeedMode(SpeedMode mode) { current_speed_mode = mode;}
 
@@ -36,20 +36,11 @@ class SpeedController {
     // Gibt die aktuelle Batteriespannung zurück
     float getBatteryVoltage() { return odrive->getParameterAsFloat("vbus_voltage"); }
 
-    // Liefert Nm Anstiegsparameter zurück
-    float getTorqueSlope() { return eeprom->loadTorqueSlope(); }
-
-    // Liefert Nm Untergrenze zurück
-    float getTorqueMinimum() { return eeprom->loadTorqueMinimum(); }
+    float getBrakeRate() { return eeprom->loadBrakeRate(); }
+    float getAccelerationRate() { return eeprom->loadAccelerationRate(); }
 
     // setze Watchodg aktiv
     void setWatchdogEnabled(bool enabled);
-
-    // Setze Nm Anstiegsparameter
-    void setTorqueSlope(float slope) { eeprom->saveTorqueSlope(slope); }
-
-    // Setze Nm Untergrenze
-    void setTorqueMinimum(float minimum) { eeprom->saveTorqueMinimum(minimum); }
 
     // Lade gespeicherte Einstellungen und setze Laufzeitwerte
     void loadSavedSettings();
@@ -59,9 +50,6 @@ class SpeedController {
 
     // Verwirft ungespeicherte Menueaenderungen
     void reloadSettingsMenuValues();
-
-    // Berechne das Drehmoment in Nm anhand der rps um die Geschwindigkeit gleichmäßig zu steigern (Kein Ruck beim Anfahren)
-    float calculateTorque(float velocity_rps);
 
     // Gibt den Batterieprozentsatz zurück
     int getBatteryPercentage() { return map(getBatteryVoltage(), V_BAT_MIN, V_BAT_MAX, 0, 100); }
@@ -113,8 +101,8 @@ class SpeedController {
 
     String ODriveErrorToString(int error);
 
-    // aktiviere/deaktiviere Motoren anhand der Pedalen und Geschwindigkeit
-    void udateIdleState();
+    // Haelt die Motoren im normalen Fahrbetrieb im Closed Loop
+    void updateMotorState();
 
     // Gibt an ob die Motoren aktiv oder im idle sind
     bool getMotorActive();
@@ -154,6 +142,7 @@ class SpeedController {
 
   private:
     float applyThrottleCurve(float normalized_input);
+    float applyVelocityRamp(float requested_velocity_rps);
 
     SpeedMode current_speed_mode; // Aktuell ausgewählter Geschwindigkeitsmodus
     SpeedMode temp_speed_mode; // Temporärer Geschwindigkeitsmodus -> Wird für Rückwertsgang benötigt
@@ -165,6 +154,8 @@ class SpeedController {
     float current_ampere; // Aktueller Strom in Ampere
     float hall_fw_filtered; // geglaetteter Pedalwert vorwaerts
     float hall_bw_filtered; // geglaetteter Pedalwert rueckwaerts
+    float commanded_velocity_rps; // Gerampter Sollwert, der an den ODrive gesendet wird
+    unsigned long last_velocity_update_ms;
     bool motor_active = false; // Gibt an ob der Motor aktiv ist
 };
 #endif

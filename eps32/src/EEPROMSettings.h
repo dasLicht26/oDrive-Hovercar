@@ -16,39 +16,80 @@ class EepromSettings {
   public:
     void setup(){
       EEPROM.begin(512); // Initialisiere EEPROM mit 512 Bytes
+
+      const uint32_t settingsVersionExpected = 0x48435632; // "HCV2"
+      uint32_t settingsVersion;
+      EEPROM.get(28, settingsVersion);
+      if (settingsVersion != settingsVersionExpected) {
+        // Einmalige Migration von den alten Drehmomentwerten auf sichere Fahrwerte.
+        EEPROM.put(0, STANDARD_SETTING_ITEMS[3].current_value);
+        EEPROM.put(4, STANDARD_SETTING_ITEMS[2].current_value);
+        EEPROM.put(20, STANDARD_SETTING_ITEMS[0].current_value);
+        EEPROM.put(24, STANDARD_SETTING_ITEMS[1].current_value);
+        EEPROM.put(28, settingsVersionExpected);
+        EEPROM.commit();
+      }
     }
 
-    void saveTorqueSlope(float nm_slope) {
-      EEPROM.put(0, nm_slope); //Speichert es an Pos. 0
+    void saveVelocityGain(float gain) {
+      EEPROM.put(20, gain);
+      EEPROM.commit();
+    }
+
+    float loadVelocityGain() {
+      float gain;
+      EEPROM.get(20, gain);
+      if (isnan(gain) || gain < 0.0f || gain > 10.0f) {
+        gain = STANDARD_SETTING_ITEMS[0].current_value;
+        saveVelocityGain(gain);
+      }
+      return gain;
+    }
+
+    void saveVelocityIntegratorGain(float gain) {
+      EEPROM.put(24, gain);
+      EEPROM.commit();
+    }
+
+    float loadVelocityIntegratorGain() {
+      float gain;
+      EEPROM.get(24, gain);
+      if (isnan(gain) || gain < 0.0f || gain > 50.0f) {
+        gain = STANDARD_SETTING_ITEMS[1].current_value;
+        saveVelocityIntegratorGain(gain);
+      }
+      return gain;
+    }
+
+    void saveBrakeRate(float brake_rate) {
+      EEPROM.put(0, brake_rate); // Speichert es an Pos. 0
       EEPROM.commit(); // Stelle sicher, dass die Daten in den EEPROM geschrieben werden
     }
 
-    float loadTorqueSlope() {
-      float nm_slope;
-      EEPROM.get(0, nm_slope); // Lese aus Pos. 0
-      if (isnan(nm_slope)) {
-        nm_slope = STANDARD_SETTING_ITEMS[3].current_value;
-        saveTorqueSlope(nm_slope);
+    float loadBrakeRate() {
+      float brake_rate;
+      EEPROM.get(0, brake_rate); // Lese aus Pos. 0
+      // Verwirft auch den alten Nm-Slope-Wert aus frueheren Firmware-Versionen.
+      if (isnan(brake_rate) || brake_rate < 0.5f || brake_rate > 20.0f) {
+        brake_rate = STANDARD_SETTING_ITEMS[3].current_value;
+        saveBrakeRate(brake_rate);
       }
-      return nm_slope;
+      return brake_rate;
     }
 
-    void saveTorqueMinimum(float nm_minimum) {
-      EEPROM.put(4, nm_minimum); //Speichert es an Pos. 4
+    void saveAccelerationRate(float acceleration_rate) {
+      EEPROM.put(4, acceleration_rate); // Speichert es an Pos. 4
       EEPROM.commit(); // Stelle sicher, dass die Daten in den EEPROM geschrieben werden
     }
 
-    float loadTorqueMinimum() {
-      float nm_minimum;
-      EEPROM.get(4, nm_minimum); // Lese aus Pos. 4
-
-      // Wenn Wert nicht gesetzt ist oder ungültig (nan) ist, setze ihn auf 2.0
-      if (isnan(nm_minimum)) {
-        nm_minimum = STANDARD_SETTING_ITEMS[2].current_value;
-        saveTorqueMinimum(nm_minimum);
+    float loadAccelerationRate() {
+      float acceleration_rate;
+      EEPROM.get(4, acceleration_rate); // Lese aus Pos. 4
+      if (isnan(acceleration_rate) || acceleration_rate < 0.5f || acceleration_rate > 20.0f) {
+        acceleration_rate = STANDARD_SETTING_ITEMS[2].current_value;
+        saveAccelerationRate(acceleration_rate);
       }
-
-      return nm_minimum;
+      return acceleration_rate;
     }
 
     void saveThrottleCurveExponent(float exponent) {
